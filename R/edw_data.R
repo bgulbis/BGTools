@@ -68,7 +68,7 @@ read_data <- function(data.dir, file.name) {
 #' a tidied data frame. Valid options for type include: admit_dc, blood,
 #' demographics, diagnosis, encounters, home_meds, icu_assess, id, labs,
 #' location, measures, meds_continuous, meds_freq, meds_sched, meds_sched_freq,
-#' mpp, problems, procedures, surgeries, radiology, vent, vitals, warfarin.
+#' mpp, problems, procedures, surgeries, radiology, uop, vent, vitals, warfarin.
 #'
 #'
 #' @param raw.data A data frame with raw data from EDW
@@ -239,6 +239,13 @@ tidy_edw_data <- function(raw.data, type) {
                      ~ifelse(Primary.Procedure.Indicator == 1, TRUE, FALSE))
         nm <- c("pie.id", "surg.start.datetime", "surg.stop.datetime",
                 "surgery", "add.on", "asa.class", "primary.proc")
+
+    } else if (type == "uop") {
+        dots <- list("PowerInsight.Encounter.Id",
+                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                     ~stringr::str_to_lower(Clinical.Event),
+                     "Clinical.Event.Result")
+        nm <- c("pie.id", "uop.datetime", "uop.event", "uop.result")
 
     } else if (type == "vent") {
         dots <- list("PowerInsight.Encounter.Id",

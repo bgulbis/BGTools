@@ -24,6 +24,6 @@ a character vector indicating the type of data being tidied, and will return
 a tidied data frame. Valid options for type include: admit_dc, blood,
 demographics, diagnosis, encounters, home_meds, icu_assess, id, labs,
 location, measures, meds_continuous, meds_freq, meds_sched, meds_sched_freq,
-mpp, problems, procedures, surgeries, radiology, vent, vitals, warfarin.
+mpp, problems, procedures, surgeries, radiology, uop, vent, vitals, warfarin.
 }
 
