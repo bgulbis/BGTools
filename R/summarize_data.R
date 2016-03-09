@@ -2,43 +2,100 @@
 
 #' Calculate the running time for continuous medication data
 #'
-#' \code{calc_runtime} calculates the time at current rate and time from
-#' start
+#' \code{calc_runtime} calculates the time at current rate and time from start
 #'
 #' This function takes a data frame with continuous medication rate data and
 #' produces a data frame with the time at each rate and the time from start for
 #' each row. This could be used to then calculate the AUC or to summarize the
-#' continuous data.
+#' continuous data. The data will be grouped into distinct sets of infusions,
+#' for patients who may have been restarted on the drip one or more times.
 #'
 #' @param cont.data A data frame with continuous medication rate data
+#' @param drip.off An optional numeric indicating the number of hours a drip
+#'   should be off to count as a new infusion, defaults to 12 hours
+#' @param no.doc An optional numeric indicating the number of hours without
+#'   documentation which will be used to indicate a drip has ended, defaults to
+#'   24 hours
 #' @param units An optional character string specifying the time units to use in
 #'   calculations, default is hours
 #'
 #' @return A data frame
 #'
 #' @export
-calc_runtime <- function(cont.data, units = "hours") {
+calc_runtime <- function(cont.data, drip.off = 12, no.doc = 24,
+                         units = "hours") {
     # group the data by pie.id and med
     cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med"))
 
-    # get the end of the infusion
-    dots <- list(~dplyr::last(med.datetime))
-    cont.end <- dplyr::summarize_(cont.data, .dots = setNames(dots, "last.datetime"))
+    # determine if it's a valid rate documentation
+    dots <- list(~ifelse(is.na(med.rate.units), FALSE, TRUE),
+                 ~cumsum(rate.change))
+    nm <- list("rate.change", "change.num")
+    cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
 
-    # add infusion end date/time to data
-    cont.data <- dplyr::inner_join(cont.data, cont.end, by = c("pie.id", "med"))
+    # regroup
+    cont.data <- dplyr::group_by_(cont.data, "change.num", add = TRUE)
 
-    # remove all rows which are not rate documentation, unless they are the last
-    # row
-    dots <- list(~(med.datetime == last.datetime | !is.na(med.rate.units)))
-    cont.data <- dplyr::filter_(cont.data, .dots = dots)
+    # fill in missing rates
+    dots <- list(~ifelse(is.na(med.rate.units), dplyr::first(med.rate),
+                         med.rate))
+    nm <- list("rate")
+    cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
 
-    # calculate the time at current rate (duration) and running time (time from
-    # start)
-    dots <- list(~as.numeric(difftime(dplyr::lead(med.datetime), med.datetime, units = units)),
-                 ~as.numeric(difftime(med.datetime, dplyr::first(med.datetime), units = units)))
+    # group the data by pie.id and med
+    cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med"))
 
-    cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, c("duration", "run.time")))
+    # calculate time between rows and order of rate changes
+    dots <- list(~as.numeric(difftime(dplyr::lead(med.datetime), med.datetime,
+                                      units = units)),
+                 ~ifelse(is.na(dplyr::lag(rate)) | rate != dplyr::lag(rate),
+                         TRUE, FALSE),
+                 ~cumsum(rate.change))
+    nm <- list("time.next", "rate.change", "change.num")
+    cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
+
+    # regroup
+    cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med",
+                                                          "change.num"))
+
+    # calculate how long the drip was at each rate
+    dots <- list(~dplyr::first(rate),
+                 ~dplyr::first(med.datetime),
+                 ~dplyr::last(med.datetime),
+                 ~as.numeric(difftime(dplyr::last(med.datetime),
+                                      dplyr::first(med.datetime),
+                                      units = units)),
+                 ~dplyr::last(time.next))
+    nm <- list("med.rate", "rate.start", "rate.stop", "rate.duration",
+               "time.next")
+    cont.data <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
+
+    # group the data by pie.id and med
+    cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med"))
+
+    # identify individual drips
+    dots <- list(~ifelse(time.next < drip.off & !is.na(time.next),
+                         rate.duration + time.next, rate.duration),
+                 ~ifelse(is.na(time.next) | time.next > no.doc |
+                             (med.rate == 0 & duration > drip.off),
+                         TRUE, FALSE),
+                 ~ifelse(change.num == 1 | dplyr::lag(drip.stop == TRUE),
+                         TRUE, FALSE),
+                 ~cumsum(drip.start))
+    nm <- list("duration", "drip.stop", "drip.start", "drip.count")
+    cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
+
+    # regroup
+    cont.data <- dplyr::group_by_(cont.data, "drip.count", add = TRUE)
+
+    # calculate run time
+    dots <- list(~cumsum(duration))
+    nm <- list("run.time")
+    cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
+
+    dots <- list(quote(-rate.duration), quote(-time.next), quote(-drip.stop),
+                 quote(-drip.start), quote(-change.num))
+    cont.data <- dplyr::select_(cont.data, .dots = dots)
 
     return(cont.data)
 }
@@ -64,6 +121,9 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     # turn off scientific notation
     options(scipen = 999)
 
+    cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med",
+                                                          "drip.count"))
+
     # get last and min non-zero rate
     nz.rate <- dplyr::filter_(cont.data, .dots = ~(med.rate > 0))
     dots <- list(~dplyr::last(med.rate), ~min(med.rate, na.rm = TRUE),
@@ -79,11 +139,13 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     summary.data <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
 
     # join the last and min data
-    summary.data <- dplyr::inner_join(summary.data, nz.rate, by = c("pie.id", "med"))
+    summary.data <- dplyr::inner_join(summary.data, nz.rate,
+                                      by = c("pie.id", "med", "drip.count"))
 
     # calculate the time-weighted average
     dots <- list(~auc/duration)
-    summary.data <- dplyr::mutate_(summary.data, .dots = setNames(dots, "time.wt.avg"))
+    nm <- list("time.wt.avg")
+    summary.data <- dplyr::mutate_(summary.data, .dots = setNames(dots, nm))
 
     return(summary.data)
 }

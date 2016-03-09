@@ -4,10 +4,17 @@
 \alias{calc_runtime}
 \title{Calculate the running time for continuous medication data}
 \usage{
-calc_runtime(cont.data, units = "hours")
+calc_runtime(cont.data, drip.off = 12, no.doc = 24, units = "hours")
 }
 \arguments{
 \item{cont.data}{A data frame with continuous medication rate data}
+
+\item{drip.off}{An optional numeric indicating the number of hours a drip
+should be off to count as a new infusion, defaults to 12 hours}
+
+\item{no.doc}{An optional numeric indicating the number of hours without
+documentation which will be used to indicate a drip has ended, defaults to
+24 hours}
 
 \item{units}{An optional character string specifying the time units to use in
 calculations, default is hours}
@@ -16,13 +23,13 @@ calculations, default is hours}
 A data frame
 }
 \description{
-\code{calc_runtime} calculates the time at current rate and time from
-start
+\code{calc_runtime} calculates the time at current rate and time from start
 }
 \details{
 This function takes a data frame with continuous medication rate data and
 produces a data frame with the time at each rate and the time from start for
 each row. This could be used to then calculate the AUC or to summarize the
-continuous data.
+continuous data. The data will be grouped into distinct sets of infusions,
+for patients who may have been restarted on the drip one or more times.
 }
 
