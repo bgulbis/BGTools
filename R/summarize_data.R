@@ -202,6 +202,7 @@ calc_perc_time <- function(cont.data, thrshld) {
     goal <- dplyr::filter_(cont.data, .dots = thrshld)
 
     # calculate the total time at goal
+    dots <- list(~sum(duration, na.rm = TRUE))
     nm <- list("time.goal")
     goal <- dplyr::summarize_(goal, .dots = setNames(dots, nm))
 
