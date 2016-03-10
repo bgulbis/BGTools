@@ -7,7 +7,7 @@
 calc_perc_time(cont.data, thrshld)
 }
 \arguments{
-\item{cont.data}{A data frame with continuous medication rate data}
+\item{cont.data}{A data frame with serial measurement data}
 
 \item{thrshld}{A list of the criteria}
 }
@@ -18,8 +18,8 @@ A data frame
 \code{calc_perc_time} calculates percent time above / below a threshold
 }
 \details{
-This function takes a data frame with continuous medication data and produces
-a data frame with percent time above or below a threshold for each infusion.
+This function takes a data frame with serial measurement data and produces a
+data frame with percent time above or below a threshold for each infusion.
 }
 \examples{
 \dontrun{

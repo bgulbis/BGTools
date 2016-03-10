@@ -177,10 +177,10 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
 #'
 #' \code{calc_perc_time} calculates percent time above / below a threshold
 #'
-#' This function takes a data frame with continuous medication data and produces
-#' a data frame with percent time above or below a threshold for each infusion.
+#' This function takes a data frame with serial measurement data and produces a
+#' data frame with percent time above or below a threshold for each infusion.
 #'
-#' @param cont.data A data frame with continuous medication rate data
+#' @param cont.data A data frame with serial measurement data
 #' @param thrshld A list of the criteria
 #'
 #' @return A data frame
