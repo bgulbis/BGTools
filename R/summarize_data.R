@@ -173,6 +173,50 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     return(summary.data)
 }
 
+#' Calculate proportion of time above or below a threshold
+#'
+#' \code{calc_perc_time} calculates percent time above / below a threshold
+#'
+#' This function takes a data frame with continuous medication data and produces
+#' a data frame with percent time above or below a threshold for each infusion.
+#'
+#' @param cont.data A data frame with continuous medication rate data
+#' @param thrshld A list of the criteria
+#'
+#' @return A data frame
+#'
+#' @examples
+#' \dontrun{
+#' calc_perc_time(data, list(~med.rate > 0.4))
+#' # calculates the proportion of time where the rate is above 0.4
+#' }
+
+#' @export
+calc_perc_time <- function(cont.data, thrshld) {
+    # get the total duration of data
+    dots <- list(~dplyr::last(run.time))
+    nm <- list("total.dur")
+    duration <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
+
+    # find all values which are within threshold
+    goal <- dplyr::filter_(cont.data, .dots = thrshld)
+
+    # calculate the total time at goal
+    nm <- list("time.goal")
+    goal <- dplyr::summarize_(goal, .dots = setNames(dots, nm))
+
+    # join the data frames and calculate percent time
+    data <- dplyr::full_join(duration, goal, by = c("pie.id", "med",
+                                                    "drip.count"))
+
+    dots <- list(~ifelse(is.na(time.goal), 0, time.goal),
+                 ~time.goal / total.dur)
+    nm <- list("time.goal", "perc.time")
+    data <- dplyr::mutate_(data, .dots = setNames(dots, nm))
+
+    return(data)
+}
+
 
 #' Determine if a lab changed by a set amount within a specific time frame
 #'
