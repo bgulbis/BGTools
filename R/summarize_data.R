@@ -89,13 +89,34 @@ calc_runtime <- function(cont.data, drip.off = 12, no.doc = 24,
     cont.data <- dplyr::group_by_(cont.data, "drip.count", add = TRUE)
 
     # calculate run time
-    dots <- list(~cumsum(duration))
+    dots <- list(~as.numeric(difftime(rate.start, first(rate.start),
+                                      units = units)))
     nm <- list("run.time")
     cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
 
+    # remove unnecessary columns
     dots <- list(quote(-rate.duration), quote(-time.next), quote(-drip.stop),
                  quote(-drip.start), quote(-change.num))
     cont.data <- dplyr::select_(cont.data, .dots = dots)
+
+    # update drip stop information if rate of last row isn't 0
+    dots <- list(~rate.stop == dplyr::last(rate.stop), ~med.rate > 0)
+    drip.end <- dplyr::filter_(cont.data, .dots = dots)
+
+    # calculate the run time for the last drip row
+    dots <- list(~duration + run.time, "rate.stop", 0)
+    nm <- list("run.time", "rate.start", "duration")
+    drip.end <- dplyr::mutate_(drip.end, .dots = setNames(dots, nm))
+
+    # bind the rows with drip end data
+    cont.data <- dplyr::bind_rows(cont.data, drip.end)
+
+    # regroup
+    cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med",
+                                                          "drip.count"))
+
+    # arrange by date/time
+    cont.data <- dplyr::arrange_(cont.data, "rate.start")
 
     return(cont.data)
 }
