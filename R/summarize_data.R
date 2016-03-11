@@ -89,13 +89,34 @@ calc_runtime <- function(cont.data, drip.off = 12, no.doc = 24,
     cont.data <- dplyr::group_by_(cont.data, "drip.count", add = TRUE)
 
     # calculate run time
-    dots <- list(~cumsum(duration))
+    dots <- list(~as.numeric(difftime(rate.start, first(rate.start),
+                                      units = units)))
     nm <- list("run.time")
     cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
 
+    # remove unnecessary columns
     dots <- list(quote(-rate.duration), quote(-time.next), quote(-drip.stop),
                  quote(-drip.start), quote(-change.num))
     cont.data <- dplyr::select_(cont.data, .dots = dots)
+
+    # update drip stop information if rate of last row isn't 0
+    dots <- list(~rate.stop == dplyr::last(rate.stop), ~med.rate > 0)
+    drip.end <- dplyr::filter_(cont.data, .dots = dots)
+
+    # calculate the run time for the last drip row
+    dots <- list(~duration + run.time, "rate.stop", 0)
+    nm <- list("run.time", "rate.start", "duration")
+    drip.end <- dplyr::mutate_(drip.end, .dots = setNames(dots, nm))
+
+    # bind the rows with drip end data
+    cont.data <- dplyr::bind_rows(cont.data, drip.end)
+
+    # regroup
+    cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med",
+                                                          "drip.count"))
+
+    # arrange by date/time
+    cont.data <- dplyr::arrange_(cont.data, "rate.start")
 
     return(cont.data)
 }
@@ -132,8 +153,10 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     nz.rate <- dplyr::summarize_(nz.rate, .dots = setNames(dots, nm))
 
     # get first and max rates and AUC
-    dots <- list(~sum(med.rate, na.rm = TRUE), ~dplyr::first(med.rate),
-                 ~max(med.rate, na.rm = TRUE), ~MESS::auc(run.time, med.rate),
+    dots <- list(~sum(med.rate * duration, na.rm = TRUE),
+                 ~dplyr::first(med.rate),
+                 ~max(med.rate, na.rm = TRUE),
+                 ~MESS::auc(run.time, med.rate),
                  ~dplyr::last(run.time))
     nm <- c("cum.dose", "first.rate", "max.rate", "auc", "duration")
     summary.data <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
@@ -148,6 +171,58 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     summary.data <- dplyr::mutate_(summary.data, .dots = setNames(dots, nm))
 
     return(summary.data)
+}
+
+#' Calculate proportion of time above or below a threshold
+#'
+#' \code{calc_perc_time} calculates percent time above / below a threshold
+#'
+#' This function takes a data frame with serial measurement data and produces a
+#' data frame with percent time above or below a threshold for each infusion.
+#'
+#' @param cont.data A data frame with serial measurement data
+#' @param thrshld A list of the criteria
+#' @param meds An optional logical indicating whether the data contains serial
+#'   medication adminstration or laboratory data, defaults to TRUE
+#'
+#' @return A data frame
+#'
+#' @examples
+#' \dontrun{
+#' calc_perc_time(data, list(~med.rate > 0.4))
+#' # calculates the proportion of time where the rate is above 0.4
+#' }
+
+#' @export
+calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
+    # get the total duration of data
+    dots <- list(~dplyr::last(run.time))
+    nm <- list("total.dur")
+    duration <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
+
+    # find all values which are within threshold
+    goal <- dplyr::filter_(cont.data, .dots = thrshld)
+
+    # calculate the total time at goal
+    dots <- list(~sum(duration, na.rm = TRUE))
+    nm <- list("time.goal")
+    goal <- dplyr::summarize_(goal, .dots = setNames(dots, nm))
+
+    # join the data frames and calculate percent time
+    if (meds == TRUE) {
+        x <- c("pie.id", "med", "drip.count")
+    } else {
+        x <- c("pie.id", "lab")
+    }
+
+    data <- dplyr::full_join(duration, goal, by = x)
+
+    dots <- list(~ifelse(is.na(time.goal), 0, time.goal),
+                 ~time.goal / total.dur)
+    nm <- list("time.goal", "perc.time")
+    data <- dplyr::mutate_(data, .dots = setNames(dots, nm))
+
+    return(data)
 }
 
 
