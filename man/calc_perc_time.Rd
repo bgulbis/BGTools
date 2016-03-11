@@ -4,12 +4,15 @@
 \alias{calc_perc_time}
 \title{Calculate proportion of time above or below a threshold}
 \usage{
-calc_perc_time(cont.data, thrshld)
+calc_perc_time(cont.data, thrshld, meds = TRUE)
 }
 \arguments{
 \item{cont.data}{A data frame with serial measurement data}
 
 \item{thrshld}{A list of the criteria}
+
+\item{meds}{An optional logical indicating whether the data contains serial
+medication adminstration or laboratory data, defaults to TRUE}
 }
 \value{
 A data frame
