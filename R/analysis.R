@@ -6,15 +6,21 @@
 #'
 #' This function takes a data frame with data to be analyzed, performs
 #' hypothesis testing, and returns a list which can be reported in a markdown
-#' document.
+#' document. If my.group is NULL, then the function will look for a column named
+#' group in the data frame.
 #'
 #' @param my.data A data frame with data to be analyzed
-#' @param my.group A vector to group patients on
+#' @param my.group An optional vector to group patients on; defaults to NULL
 #'
 #' @return A list
 #'
 #' @export
-analyze_data <- function(my.data, my.group) {
+analyze_data <- function(my.data, my.group = NULL) {
+    # look for group column
+    if (is.null(my.group)) {
+        my.group <- my.data$group
+    }
+
     # analyze continuous data
     cont <- sapply(my.data, is.numeric)
     test <- my.data[,c(cont)]

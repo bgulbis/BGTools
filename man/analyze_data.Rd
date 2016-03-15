@@ -4,12 +4,12 @@
 \alias{analyze_data}
 \title{Analysis of data}
 \usage{
-analyze_data(my.data, my.group)
+analyze_data(my.data, my.group = NULL)
 }
 \arguments{
 \item{my.data}{A data frame with data to be analyzed}
 
-\item{my.group}{A vector to group patients on}
+\item{my.group}{An optional vector to group patients on; defaults to NULL}
 }
 \value{
 A list
@@ -20,6 +20,7 @@ A list
 \details{
 This function takes a data frame with data to be analyzed, performs
 hypothesis testing, and returns a list which can be reported in a markdown
-document.
+document. If my.group is NULL, then the function will look for a column named
+group in the data frame.
 }
 
