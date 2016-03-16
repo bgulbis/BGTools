@@ -25,7 +25,7 @@ analyze_data <- function(my.data, my.group = NULL) {
     # analyze continuous data
     test <- purrr::keep(my.data, is.numeric)
 
-    ds1 <- lapply(test, tapply, my.group, Summarize)
+    ds1 <- lapply(test, tapply, my.group, FSA::Summarize)
     ds2 <- lapply(ds1, do.call, what=cbind)
 
     err.msg <- "Insufficient sample size for normality testing"
@@ -63,8 +63,9 @@ analyze_data <- function(my.data, my.group = NULL) {
     test <- purrr::discard(my.data, is.numeric)
 
     ds1 <- lapply(test, function(x) table(x, my.group))
-    ds2 <- lapply(test, function(x) Summarize(my.group ~ x, percent = "column",
-                                              addtotal = FALSE))
+    ds2 <- lapply(test, function(x) FSA::Summarize(my.group ~ x,
+                                                   percent = "column",
+                                                   addtotal = FALSE))
 
     err.msg <- "Chi-squared could not be performed"
 
