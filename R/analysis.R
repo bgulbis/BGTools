@@ -37,23 +37,25 @@ analyze_data <- function(my.data, my.group = NULL) {
             "Insufficient sample size for normality testing"
         })
 
-    # lapply(test, function(x) str(split(x, my.group)))
+    test_groups <- function(x) {
+        if (shapiro.test(x) >= 0.05) {
+            wilcox.test(x ~ my.group)
+        } else if(var.test(x ~ my.group)$p.value >= 0.05) {
+            t.test(x ~ my.group)
+        } else {
+            t.test(x ~ my.group, var.equal=TRUE)
+        }
+    }
     # if not normally distributed, use non-parametric test
     # if var.test$p.value >= 0.05 then variances are equal
-    tt3 <- lapply(test, function(x)
-        if(sum(!is.na(x)) >= 3 & sum(!duplicated(my.group)) > 1) {
-            # print(sum(split(x, my.group), na.rm = TRUE))
+    tt3 <- lapply(test, function(x) try(test_groups(x), silent = TRUE))
 
-            if (shapiro.test(x) >= 0.05) {
-                wilcox.test(x ~ my.group)
-            } else if(var.test(x ~ my.group)$p.value >= 0.05) {
-                t.test(x ~ my.group)
-            } else {
-                t.test(x ~ my.group, var.equal=TRUE)
-            }
-        } else {
-            "Insufficient sample size for inference testing"
-        })
+        # if(sum(!is.na(x)) >= 3 & sum(!duplicated(my.group)) > 1) {
+        #     # print(sum(split(x, my.group), na.rm = TRUE))
+        #
+        # } else {
+        #     "Insufficient sample size for inference testing"
+        # })
 
     # np1 <- lapply(test, function(x) wilcox.test(x ~ my.group))
 
