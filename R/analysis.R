@@ -23,20 +23,19 @@ analyze_data <- function(my.data, my.group = NULL) {
     }
 
     # analyze continuous data
-    cont <- sapply(my.data, is.numeric)
-    test <- my.data[, c(cont)]
+    test <- purrr::keep(my.data, is.numeric)
 
     ds1 <- lapply(test, tapply, my.group, Summarize)
     ds2 <- lapply(ds1, do.call, what=cbind)
 
+    err.msg <- "Insufficient sample size for normality testing"
+
     # a p < 0.05 implies the data is not normally distributed
     sw1 <- lapply(test, function(x)
-        if (sum(!is.na(x)) >= 3) {
-            shapiro.test(x)
-        } else {
-            "Insufficient sample size for normality testing"
-        })
+        tryCatch(shapiro.test(x), error = function(e) err.msg))
 
+    # if not normally distributed, use non-parametric test; if var.test$p.value
+    # >= 0.05 then variances are equal
     test_groups <- function(x) {
         if (shapiro.test(x) >= 0.05) {
             wilcox.test(x ~ my.group)
@@ -46,18 +45,11 @@ analyze_data <- function(my.data, my.group = NULL) {
             t.test(x ~ my.group, var.equal=TRUE)
         }
     }
-    # if not normally distributed, use non-parametric test
-    # if var.test$p.value >= 0.05 then variances are equal
-    tt3 <- lapply(test, function(x) try(test_groups(x), silent = TRUE))
 
-        # if(sum(!is.na(x)) >= 3 & sum(!duplicated(my.group)) > 1) {
-        #     # print(sum(split(x, my.group), na.rm = TRUE))
-        #
-        # } else {
-        #     "Insufficient sample size for inference testing"
-        # })
+    err.msg <- "Insufficient sample size for inference testing"
 
-    # np1 <- lapply(test, function(x) wilcox.test(x ~ my.group))
+    tt3 <- lapply(test, function(x)
+        tryCatch(test_groups(x), error = function(e) err.msg))
 
     ds3 <- lapply(seq_along(ds1), function(i) list(results = ds2[[i]],
                                                    normality = sw1[[i]],
@@ -68,21 +60,16 @@ analyze_data <- function(my.data, my.group = NULL) {
     cont.data <- ds3
 
     # analyze categorical data
-    test <- my.data[, !c(cont)]
+    test <- purrr::discard(my.data, is.numeric)
 
     ds1 <- lapply(test, function(x) table(x, my.group))
     ds2 <- lapply(test, function(x) Summarize(my.group ~ x, percent = "column",
                                               addtotal = FALSE))
+
+    err.msg <- "Chi-squared could not be performed"
+
     csq <- lapply(test, function(x)
-        if (sum(!duplicated(x)) == 1) {
-            "Must be values in at least two groups to perform chi-squared"
-        } else if (is.factor(x)) {
-            chisq.test(x, my.group)
-        } else if (is.logical(x) & sum(x, na.rm = TRUE) > 0) {
-            chisq.test(x, my.group)
-        } else {
-            "Chi-squared could not be performed"
-        })
+        tryCatch(chisq.test(x, my.group), error = function(e) err.msg))
 
     ds3 <- lapply(seq_along(ds1), function(i) list(counts = ds1[[i]],
                                                    percents = ds2[[i]],
