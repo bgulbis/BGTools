@@ -1,7 +1,7 @@
 Package: BGTools
 Type: Package
 Title: Brian's Functions for Data Tidying and Analysis
-Version: 0.1.2
+Version: 0.1.3
 Depends: R (>= 2.10)
 Date: 2015-12-02
 Authors@R: person("Brian", "Gulbis", email="brian.gulbis@gmail.com", role=c("aut","cre"))
@@ -10,5 +10,5 @@ Description: This package contains several functions which are helpful for
     and checking for lab changes over a specified period of time.
 License: GPL-3
 LazyData: TRUE
-Imports: R.utils, lubridate, dplyr, stringr, MESS, tidyr, lazyeval, zoo
+Imports: R.utils, lubridate, dplyr, stringr, MESS, tidyr, lazyeval, zoo, purrr, FSA, tableone, ReporteRs
 RoxygenNote: 5.0.1
