@@ -145,22 +145,13 @@ result_table <- function(mydoc, test, table.title, group = "group") {
     tab1 <- print(tab, printToggle = FALSE, nonnormal = not.nrmlVars,
                   cramVars = cramVars)
 
-    # set table header properties
-    hdr.cell <- ReporteRs::cellProperties(background.color = "#003366")
-    hdr.txt <- ReporteRs::textBold(color = "white", font.family = "Calibri")
     mydoc <- ReporteRs::addParagraph(mydoc, "")
 
     # add title before table, will output as "Table X: Title"
     mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
 
-    # convert data frame into FlexTable object, format table
-    mytable <- ReporteRs::FlexTable(tab1, add.rownames = TRUE,
-                                    header.cell.props = hdr.cell,
-                                    header.text.props = hdr.txt)
-    mytable[] <- ReporteRs::textProperties(font.family = "Calibri",
-                                           font.size = 10)
-    mytable <- ReporteRs::setZebraStyle(mytable, odd = "#eeeeee",
-                                        even = "white")
+    # get the FlexTable object
+    mytable <- make_flextable(tab1)
 
     # add the FlexTable to docx object and return
     mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
@@ -168,6 +159,26 @@ result_table <- function(mydoc, test, table.title, group = "group") {
     return(mydoc)
 }
 
+# make a FlexTable
+make_flextable <- function(df, zebra = TRUE) {
+    # set table header properties
+    hdr.cell <- ReporteRs::cellProperties(background.color = "#003366")
+    hdr.txt <- ReporteRs::textBold(color = "white", font.family = "Calibri")
+
+    # convert data frame into FlexTable object, format table
+    mytable <- ReporteRs::FlexTable(df, add.rownames = TRUE,
+                                    header.cell.props = hdr.cell,
+                                    header.text.props = hdr.txt)
+    mytable[] <- ReporteRs::textProperties(font.family = "Calibri",
+                                           font.size = 10)
+
+    if (zebra == TRUE) {
+        mytable <- ReporteRs::setZebraStyle(mytable, odd = "#eeeeee",
+                                            even = "white")
+    }
+
+    return (mytable)
+}
 
 # check for normality
 normal_test <- function(x) {
@@ -233,6 +244,43 @@ result_table2 <- function(mydoc, test, split.by, table.title, group = "group") {
         # make new result_table and store in docx object
         mydoc <- result_table(mydoc, tbl.test, new.title, group)
     }
+
+    return(mydoc)
+}
+
+#' Create a result table for regression model
+#'
+#' \code{result_regrmod} make a table with results of a regression model to be
+#' inserted into Microsoft Word
+#'
+#' This function takes a regression model and saves the results in a FlexTable,
+#' which is then added to the docx object which is returned. The docx object can
+#' then be written to a Microsoft Word document.
+#'
+#' @param mydoc A docx object
+#' @param mod A regression model
+#' @param table.title A character string
+#' @param exp An optional logical, passed to ShowRegTable
+#'
+#' @return A docx object
+#'
+#' @seealso \code{\link[tableone]{ShowRegTable}}
+#'
+#' @export
+result_regrmod <- function(mydoc, mod, table.title, exp = TRUE) {
+    # make a matrix with regression model results
+    tab <- tableone::ShowRegTable(mod, exp = exp, printToggle = FALSE)
+
+    # get the FlexTable object
+    mytable <- make_flextable(tab)
+
+    mydoc <- ReporteRs::addParagraph(mydoc, "")
+
+    # add title before table, will output as "Table X: Title"
+    mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
+
+    # add the FlexTable to docx object and return
+    mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
 
     return(mydoc)
 }
