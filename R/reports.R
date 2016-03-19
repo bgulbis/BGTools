@@ -53,6 +53,38 @@ result_docx <- function(project, authors, template = NULL, title.names = NULL,
     return(mydoc)
 }
 
+#' Write docx to Word
+#'
+#' \code{write_docx} save a docx object to a Microsoft Word document
+#'
+#' This function takes a docx object and optionally inserts a citation for R,
+#' then writes the docx object to a Microsoft Word document.
+#'
+#' @param mydoc A docx object
+#' @param file.name A character string with the name of the project
+#' @param add.citation An optional logical, if TRUE (default) a citation for R
+#'   is added to the document
+#' @param prep An optional character string with the name of the person who
+#'   prepared the data analysis, ignored if add_citation is FALSE
+#'
+#' @return A docx object
+#'
+#' @seealso \code{\link[ReporteRs]{writeDoc}}
+#'
+#' @export
+write_docx <- function(mydoc, file.name, add.citation = TRUE, prep = NULL) {
+    if (add.citation == TRUE) {
+        if (is.null(prep)) {
+            mydoc <- add_rcitation(mydoc)
+        } else {
+            mydoc <- add_rcitation(mydoc, prep)
+        }
+    }
+
+    ReporteRs::writeDoc(mydoc, file = file.name)
+
+}
+
 #' Create a results table using tableone
 #'
 #' \code{create_tableone} make a table with results to be inserted into
@@ -274,12 +306,20 @@ result_regrmod <- function(mydoc, mod, table.title, exp = TRUE) {
     # get the FlexTable object
     mytable <- make_flextable(tab)
 
-    mydoc <- ReporteRs::addParagraph(mydoc, "")
+    mydoc <- newline(mydoc)
 
     # add title before table, will output as "Table X: Title"
     mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
 
     # add the FlexTable to docx object and return
+    mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
+
+    mydoc <- newline(mydoc)
+
+    # add model statistics
+    stats.mod <- t(broom::glance(mod))
+    colnames(stats.mod) <- "model statistics"
+    mytable <- make_flextable(stats.mod)
     mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
 
     return(mydoc)
@@ -306,16 +346,22 @@ add_rcitation <- function(mydoc, prep = "Brian Gulbis") {
     citeTxt <- ReporteRs::pot(citation()$textVersion)
 
     newpar <- ReporteRs::addParagraph
-    newline <- ReporteRs::addParagraph(mydoc, "")
+    # newline <- ReporteRs::addParagraph(mydoc, "")
 
-    mydoc <- newline
+    mydoc <- newline(mydoc)
     mydoc <- newpar(mydoc, "Citation", stylename = "SectionTitle")
     mydoc <- newpar(mydoc, prepby)
-    mydoc <- newline
+    mydoc <- newline(mydoc)
     mydoc <- newpar(mydoc, ref)
-    mydoc <- newline
+    mydoc <- newline(mydoc)
     mydoc <- newpar(mydoc, "To cite R in publications, use:")
     mydoc <- newpar(mydoc, citeTxt)
 
+    return(mydoc)
+}
+
+# insert a new line
+newline <- function(mydoc) {
+    mydoc <- ReporteRs::addParagraph(mydoc, "")
     return(mydoc)
 }
