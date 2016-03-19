@@ -4,7 +4,7 @@
 \alias{result_table}
 \title{Create a results table}
 \usage{
-result_table(mydoc, test, table.title)
+result_table(mydoc, test, table.title, group = "group")
 }
 \arguments{
 \item{mydoc}{A docx object}
@@ -12,6 +12,9 @@ result_table(mydoc, test, table.title)
 \item{test}{A data frame}
 
 \item{table.title}{A character string}
+
+\item{group}{An optional character string indicating the name of the column
+to group on; defaults to "group", set group to NULL to remove grouping}
 }
 \value{
 A docx object
@@ -21,11 +24,11 @@ A docx object
 Word
 }
 \details{
-This function takes a data frame and outputs the results of the analysis to a
-FlexTable, for inclusion in a Word document.
+This function takes a data frame and converts it to a FlexTable. The
+FlexTable is then added to the docx object which is returned. The docx object
+can then be written to a Microsoft Word document.
 }
 \seealso{
-\code{\link[tableone]{CreateTableOne}}
 \code{\link[ReporteRs]{FlexTable}}
 }
 

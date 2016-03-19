@@ -1,33 +1,130 @@
 # reports.R
 
+#' Create a results document
+#'
+#' \code{result_docx} make a docx object to insert results into
+#'
+#' This function creates a docx object and inserts project title, authors, and
+#' report date into the object. The docx object can then be written to a
+#' Microsoft Word document.
+#'
+#' @param project A character string with the name of the project
+#' @param authors A character string with the name of the authors
+#' @param template An optional character string with the filename of the docx
+#'   file to be used as a template
+#' @param title.names An optional character vector with names of title styles
+#'   used
+#' @param title.style An optional character string with the name of the title
+#'   style to use for project title, defaults to TitleDoc
+#' @param bookmark An optional character string with the name of the bookmark in
+#'   the Word document template where the report should start, defaults to
+#'   "start"
+#'
+#' @return A docx object
+#'
+#' @seealso \code{\link[ReporteRs]{docx}}
+#'
+#' @export
+result_docx <- function(project, authors, template = NULL, title.names = NULL,
+                        title.style = "TitleDoc", bookmark = "start") {
+    # if no template specified, use default
+    if (is.null(template)) {
+        template <- system.file("templates", "results_template.docx",
+                                package = "BGTools")
+    }
+
+    # make docx object
+    mydoc <- ReporteRs::docx(template = template)
+
+    # declare title styles
+    if (is.null(title.names)) {
+        title.names <- c("TitleDoc", "SubtitleCentered", "rTableLegend")
+    }
+    mydoc <- ReporteRs::declareTitlesStyles(mydoc, stylenames = title.names)
+
+    mydoc <- ReporteRs::addParagraph(mydoc, project, stylename = title.style,
+                                     bookmark = bookmark)
+    mydoc <- ReporteRs::addTitle(mydoc, authors, level = 2)
+
+    # add current date to report
+    date <- format(Sys.Date(), "%B %d, %Y")
+    mydoc <- ReporteRs::addTitle(mydoc, date, level = 2)
+
+    return(mydoc)
+}
+
+#' Create a results table using tableone
+#'
+#' \code{create_tableone} make a table with results to be inserted into
+#' Microsoft Word
+#'
+#' This function takes a data frame and converts it to a TableOne object.
+#'
+#' @param test A data frame with the data to be summarized
+#' @param group An optional character character vector indicating grouping
+#'   column(s); default is no groups
+#' @param ident An optional character string with the name of the subject
+#'   identifier column
+#'
+#' @return A TableOne object
+#'
+#' @seealso \code{\link[tableone]{CreateTableOne}}
+#'
+#' @export
+create_tableone <- function(test, group = NULL, ident = "pie.id") {
+    # get list of variables to be reported; remove patient identifier column
+    vars <- names(test)
+    vars <- vars[vars != ident]
+
+    # find categorical variables by removing all numeric variables
+    cat <- purrr::discard(test, is.numeric)
+    catVars <- names(cat)
+
+    # create tableone, use print to make a data frame
+    if (is.null(group)) {
+        tab <- tableone::CreateTableOne(vars = vars, data = test,
+                                        factorVars = catVars)
+    } else {
+        # remove grouping column
+        vars <- vars[vars != group]
+        tab <- tableone::CreateTableOne(vars, strata = group, data = test,
+                                        factorVars = catVars)
+    }
+    return(tab)
+}
+
 #' Create a results table
 #'
 #' \code{result_table} make a table with results to be inserted into Microsoft
 #' Word
 #'
-#' This function takes a data frame and outputs the results of the analysis to a
-#' FlexTable, for inclusion in a Word document.
+#' This function takes a data frame and converts it to a FlexTable. The
+#' FlexTable is then added to the docx object which is returned. The docx object
+#' can then be written to a Microsoft Word document.
 #'
 #' @param mydoc A docx object
 #' @param test A data frame
 #' @param table.title A character string
+#' @param group An optional character string indicating the name of the column
+#'   to group on; defaults to "group", set group to NULL to remove grouping
 #'
 #' @return A docx object
 #'
-#' @seealso
-#' \code{\link[tableone]{CreateTableOne}}
-#' \code{\link[ReporteRs]{FlexTable}}
+#' @seealso \code{\link[ReporteRs]{FlexTable}}
 #'
 #' @export
-result_table <- function(mydoc, test, table.title) {
-    vars <- names(test)
-    vars <- vars[!(vars %in% c("pie.id", "group"))]
-
+result_table <- function(mydoc, test, table.title, group = "group") {
+    # determine which variables are continous
     cont <- purrr::keep(test, is.numeric)
     contVars <- names(cont)
 
+    # determine which variables are logical or factors with only two levels
     cram <- purrr::keep(test, is.logical)
     cramVars <- names(cram)
+
+    cramF <- purrr::keep(test, is.factor)
+    cramF <- purrr::keep(cramF, ~ length(levels(.x)) == 2)
+    cramVars <- c(cramVars, names(cramF))
 
     not.nrmlVars <- ""
 
@@ -39,18 +136,24 @@ result_table <- function(mydoc, test, table.title) {
         not.nrmlVars <- not.nrml$data.name
     }
 
-    cat <- purrr::discard(test, is.numeric)
-    catVars <- names(cat)
-
-    tab <- tableone::CreateTableOne(vars, strata = "group", data = test,
-                                    factorVars = catVars)
+    # create tableone, use print to make a data frame
+    if (is.null(group)) {
+        tab <- create_tableone(test)
+    } else {
+        tab <- create_tableone(test, group)
+    }
     tab1 <- print(tab, printToggle = FALSE, nonnormal = not.nrmlVars,
                   cramVars = cramVars)
 
+    # set table header properties
     hdr.cell <- ReporteRs::cellProperties(background.color = "#003366")
     hdr.txt <- ReporteRs::textBold(color = "white", font.family = "Calibri")
     mydoc <- ReporteRs::addParagraph(mydoc, "")
+
+    # add title before table, will output as "Table X: Title"
     mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
+
+    # convert data frame into FlexTable object, format table
     mytable <- ReporteRs::FlexTable(tab1, add.rownames = TRUE,
                                     header.cell.props = hdr.cell,
                                     header.text.props = hdr.txt)
@@ -59,6 +162,7 @@ result_table <- function(mydoc, test, table.title) {
     mytable <- ReporteRs::setZebraStyle(mytable, odd = "#eeeeee",
                                         even = "white")
 
+    # add the FlexTable to docx object and return
     mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
 
     return(mydoc)
@@ -81,4 +185,89 @@ normal_test <- function(x) {
     nrml <- dplyr::select_(nrml, .dots = list("data.name", "method",
                                               "statistic", "p.value"))
     return(nrml)
+}
+
+#' Create multiple result tables separated by a factor
+#'
+#' \code{result_table2} make multiple tables with results to be inserted into
+#' Microsoft Word
+#'
+#' This function takes a data frame and converts it into a separate FlexTable
+#' for each factor of a variable. The FlexTables are then added to the docx
+#' object which is returned. The docx object can then be written to a Microsoft
+#' Word document. Similar to \code{\link{result_table}} except the data is first
+#' separated into multiple data frames based on the split.by column.
+#'
+#' @param mydoc A docx object
+#' @param test A data frame
+#' @param split.by A character string indicating the name of the column used to
+#'   separate the data into multiple data frames
+#' @param table.title A character string, will proceed the name of the factor
+#' @param group An optional character string indicating the name of the column
+#'   to group on; defaults to "group", set group to NULL to remove grouping
+#'
+#' @return A docx object
+#'
+#' @seealso \code{\link[ReporteRs]{FlexTable}}
+#'
+#' @export
+result_table2 <- function(mydoc, test, split.by, table.title, group = "group") {
+    # make a character vector of the values which will be used to split the
+    # table
+    split.col <- as.name(split.by)
+    dots <- list(lazyeval::interp(quote(x), x = split.col))
+    splits <- dplyr::select_(test, .dots = dots)
+    splits <- dplyr::distinct_(splits)
+    splits <- as.character(purrr::as_vector(splits))
+
+    # for each value, make a separate result_table
+    for (i in 1:length(splits)) {
+        # filter only to the current value
+        dots <- list(lazyeval::interp(~x == splits[[i]], x = split.col))
+        tbl.test <- dplyr::filter_(test, .dots = dots)
+        # remove the split.by column so it's not used in analysis
+        dots <- list(lazyeval::interp(quote(-x), x = split.col))
+        tbl.test <- dplyr::select_(tbl.test, .dots = dots)
+        # create a new title for each table, prefix with table.title value
+        new.title <- paste0(table.title, ": ", splits[[i]])
+        # make new result_table and store in docx object
+        mydoc <- result_table(mydoc, tbl.test, new.title, group)
+    }
+
+    return(mydoc)
+}
+
+#' Add citation for data preparation
+#'
+#' \code{add_rcitation} add a citation for R to a Microsoft Word document
+#'
+#' This function takes a docx object and adds paragraphs which cite R and the
+#' name of the person who prepared the data analysis.
+#'
+#' @param mydoc A docx object
+#' @param prep An optional character string with the name of the person who
+#'   prepared the data analysis
+#'
+#' @return A docx object
+#'
+#' @export
+add_rcitation <- function(mydoc, prep = "Brian Gulbis") {
+    ref <- ReporteRs::pot("Data processed using ") + R.version.string +
+        " on a " + .Platform$OS.type + " " + .Platform$r_arch + " system."
+    prepby <- paste("Prepared by:", prep)
+    citeTxt <- ReporteRs::pot(citation()$textVersion)
+
+    newpar <- ReporteRs::addParagraph
+    newline <- ReporteRs::addParagraph(mydoc, "")
+
+    mydoc <- newline
+    mydoc <- newpar(mydoc, "Citation", stylename = "SectionTitle")
+    mydoc <- newpar(mydoc, prepby)
+    mydoc <- newline
+    mydoc <- newpar(mydoc, ref)
+    mydoc <- newline
+    mydoc <- newpar(mydoc, "To cite R in publications, use:")
+    mydoc <- newpar(mydoc, citeTxt)
+
+    return(mydoc)
 }
