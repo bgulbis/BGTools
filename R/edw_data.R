@@ -14,7 +14,7 @@
 #' @param file.name A character string with name of data file or pattern to match
 #' @param type An optional character string indicating type of data being tidied
 #'
-#' @return A data frame
+#' @return A data frame (tbl_df)
 #'
 #' @export
 read_edw_data <- function(data.dir, file.name, type = NA) {
@@ -23,11 +23,176 @@ read_edw_data <- function(data.dir, file.name, type = NA) {
         type <- file.name
     }
 
-    raw <- read_data(data.dir, file.name)
+    # get list of files is specified directory and matching file name
+    raw <- list.files(data.dir, pattern = file.name, full.names = TRUE)
 
-    tidy <- tidy_edw_data(raw, type)
+    exclude <- c("", "Unknown")
+    pt.id <- "pie.id"
+    dt.format <- "%Y/%m/%d %H:%M:%S"
+    dots <- NULL
+    nm <- NULL
 
-    return(tidy)
+    col_character <- readr::col_character
+    col_datetime <- readr::col_datetime
+    col_double <- readr::col_double
+    col_factor <- readr::col_factor
+    col_integer <- readr::col_integer
+
+    switch(type,
+           admit_dc = {
+               col_names <- c(pt.id, "arrival.datetime", "admit.datetime",
+                       "discharge.datetime")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_datetime(format = dt.format),
+                                        col_datetime(format = dt.format))
+           },
+
+           blood = {
+               col_names <- c(pt.id, "blood.datetime", "blood.prod",
+                              "blood.type")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_character(),
+                                        col_character())
+               dots <- list(~assign_blood_prod(stringr::str_to_lower(blood.prod)))
+               nm <- "blood.prod"
+           },
+
+           demographics = {
+               col_names <- c(pt.id, "age", "sex", "race", "disposition",
+                              "length.stay", "visit.type", "person.id",
+                              "facility")
+               race <- c("African American", "Asian", "Latin American",
+                         "Native Am.", "Other", "White/Caucasian")
+               col_types <- readr::cols(col_character(),
+                                        col_integer(),
+                                        col_factor(c("Female", "Male")),
+                                        col_factor(race),
+                                        col_character(),
+                                        col_double(),
+                                        col_character(),
+                                        col_character(),
+                                        col_character())
+               dots <- list(~factor(disposition, exclude = exclude),
+                            ~factor(visit.type, exclude = exclude),
+                            ~factor(facility, exclude = exclude))
+               nm <- c("disposition", "visit.type", "facility")
+           },
+
+           diagnosis = {
+               col_names <- c(pt.id, "diag.code", "diag.type", "diag.seq")
+               col_types <- readr::cols(col_character(),
+                                        col_character(),
+                                        col_character(),
+                                        col_factor(c(0, 1, 99)))
+               dots <- list(~factor(diag.type, exclude = exclude))
+               nm <- "diag.type"
+           },
+
+           encounters = {
+               col_names <- c("person.id", "admit.datetime", pt.id,
+                              "visit.type", "facility", "disposition")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_character(),
+                                        col_character(),
+                                        col_character(),
+                                        col_character())
+               dots <- list(~factor(visit.type, exclude = exclude),
+                            ~factor(facility, exclude = exclude),
+                            ~factor(disposition, exclude = exclude))
+               nm <- c("visit.type", "facility", "disposition")
+           },
+
+           home_meds = {
+               col_names <- c(pt.id, "med", "order.name", "med.type")
+               col_types <- readr::cols(col_character(),
+                                        col_character(),
+                                        col_character(),
+                                        col_character())
+               dots <- list(~stringr::str_to_lower(med),
+                            ~factor(med.type))
+               nm <- c("med", "med.type")
+           },
+
+           id = {
+               col_names <- c(pt.id, "fin", "person.id")
+               col_types <- readr::cols(col_character(),
+                                        col_character(),
+                                        col_character())
+           },
+
+           icu_assess = {
+               col_names <- c(pt.id, "assess.datetime", "assessment", "assess.result")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_character(),
+                                        col_character())
+               dots <- list(~stringr::str_to_lower(assessment))
+               nm <- "assessment"
+           },
+
+           labs = {
+               col_names <- c(pt.id, "lab.datetime", "lab", "lab.result")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_character(),
+                                        col_character())
+               dots <- list(~stringr::str_to_lower(lab))
+               nm <- "lab"
+           },
+
+           locations = {
+               col_names <- c(pt.id, "arrive.datetime", "depart.datetime",
+                              "unit.to", "unit.from")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_datetime(format = dt.format),
+                                        col_character(),
+                                        col_character())
+           },
+
+           measures = {
+               col_names <- c(pt.id, "measure.datetime", "measure",
+                              "measure.result", "measure.units")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_factor(c("Height", "Weight")),
+                                        col_double(),
+                                        col_factor(c("cm", "in", "lb", "kg")))
+           },
+
+           meds_continuous = {
+               col_names <- c(pt.id, "med.datetime", "med", "med.rate",
+                              "med.rate.units", "event.id")
+               col_types <- readr::cols(col_character(),
+                                        col_datetime(format = dt.format),
+                                        col_character(),
+                                        col_double(),
+                                        col_character(),
+                                        col_character())
+               dots <- list(~stringr::str_to_lower(med),
+                            ~factor(med.rate.units, exclude = exclude))
+               nm <- c("med", "med.rate.units")
+           },
+
+           stop("Invalid type")
+
+    )
+
+    # loop through all matching files and read in to list take list of files and
+    # bind them together into a data frame; will set column names based on the
+    # type of data, so skip the header row
+    read <- purrr::map_df(raw, readr::read_csv, col_names = col_names,
+                          col_types = col_types, skip = 1)
+    read <- dplyr::distinct_(read)
+
+    if (!is.null(dots)) {
+        read <- dplyr::mutate_(read, .dots = setNames(dots, nm))
+    }
+
+    read
 }
 
 #' Read and join data from multiple csv files
@@ -48,14 +213,12 @@ read_edw_data <- function(data.dir, file.name, type = NA) {
 read_data <- function(data.dir, file.name) {
     # get list of files is specified directory and matching file name
     raw <- list.files(data.dir, pattern = file.name, full.names = TRUE)
-    # loop through all matching files and read in to list
-    raw <- lapply(raw, read.csv, colClasses = "character")
-    # take list of files and bind them together into a data frame
-    raw <- dplyr::bind_rows(raw)
+    # loop through all matching files and read in to list take list of files and
+    # bind them together into a data frame
+    raw <- purrr::map_df(raw, read.csv, colClasses = "character")
+
     # remove any duplicate rows
     raw <- dplyr::distinct_(raw)
-
-    return(raw)
 }
 
 #' Tidy data from EDW

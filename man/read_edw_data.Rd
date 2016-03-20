@@ -15,7 +15,7 @@ data files}
 \item{type}{An optional character string indicating type of data being tidied}
 }
 \value{
-A data frame
+A data frame (tbl_df)
 }
 \description{
 \code{read_edw_data} takes a directory and file name and reads in all
