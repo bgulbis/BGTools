@@ -257,19 +257,20 @@ calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
 lab_change <- function(lab.data, change.by, FUN, back = 2) {
     # calculate the number of rows that are included within the window
     dots <- list(~count_rowsback(lab.datetime, back))
-    lab.data <- mutate_(lab.data, .dots = setNames(dots, "rowsback"))
+    lab.data <- dplyr::mutate_(lab.data, .dots = setNames(dots, "rowsback"))
 
     # calculate the running min/max during the time window
     dots <- list(~zoo::rollapplyr(as.numeric(lab.result), rowsback, FUN,
                                   fill = NA, partial = TRUE))
-    lab.data <- mutate_(lab.data, .dots = setNames(dots, "running"))
+    lab.data <- dplyr::mutate_(lab.data, .dots = setNames(dots, "running"))
 
     # calcualte the change from the running min/max to current value
     dots <- list(~as.numeric(lab.result) - running)
-    lab.data <- mutate_(lab.data, .dots = setNames(dots, "change"))
+    lab.data <- dplyr::mutate_(lab.data, .dots = setNames(dots, "change"))
 
     # filter values which exceed the change.by value
-    lab.data <- filter_(lab.data, .dots = list(~abs(change) >= abs(change.by)))
+    dots <- list(~abs(change) >= abs(change.by))
+    lab.data <- dplyr::filter_(lab.data, .dots = dots)
 
     return(lab.data)
 }
