@@ -325,6 +325,41 @@ result_regrmod <- function(mydoc, mod, table.title, exp = TRUE) {
     return(mydoc)
 }
 
+#' Add a ggplot2 graph to docx object
+#'
+#' \code{result_plot} add a ggplot2 graph to the docx object which can then be
+#' inserted into Microsoft Word
+#'
+#' This function takes a ggplot2 graph and adds the plot to the docx object
+#' which is returned. The docx object can then be written to a Microsoft Word
+#' document.
+#'
+#' @param mydoc A docx object
+#' @param graph A ggplot2 object
+#' @param title An optional character string, if not NULL (default), the title
+#'   will be added above the plot
+#'
+#' @return A docx object
+#'
+#' @seealso \code{\link[ReporteRs]{addPlot}}
+#'
+#' @export
+result_plot <- function(mydoc, graph, title = NULL) {
+    mydoc <- newline(mydoc)
+
+    # if title given, add it before the plot
+    if (!is.null(title)) {
+        mydoc <- ReporteRs::addParagraph(mydoc, title,
+                                         stylename = "SectionTitle")
+        mydoc <- newline(mydoc)
+    }
+
+    # add the plot
+    mydoc <- ReporteRs::addPlot(mydoc, fun = print, x = graph)
+
+    return(mydoc)
+}
+
 #' Add citation for data preparation
 #'
 #' \code{add_rcitation} add a citation for R to a Microsoft Word document
