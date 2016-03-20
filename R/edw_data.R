@@ -79,192 +79,212 @@ read_data <- function(data.dir, file.name) {
 tidy_edw_data <- function(raw.data, type) {
 
     # set field modifications (dots) and names of columns (nm)
-    if (type == "admit_dc") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Arrival.Date...Time),
-                     ~lubridate::ymd_hms(Admit.Date...Time),
-                     ~lubridate::ymd_hms(Discharge.Date...Time))
-        nm <- c("pie.id", "arrival.datetime", "admit.datetime",
-                "discharge.datetime")
+    switch(type,
+           admit_dc = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Arrival.Date...Time),
+                            ~lubridate::ymd_hms(Admit.Date...Time),
+                            ~lubridate::ymd_hms(Discharge.Date...Time))
+               nm <- c("pie.id", "arrival.datetime", "admit.datetime",
+                       "discharge.datetime")
+           },
 
-    } else if (type == "blood") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~assign_blood_prod(stringr::str_to_lower(Clinical.Event)),
-                     "Clinical.Event.Result")
-        nm <- c("pie.id", "blood.datetime", "blood.prod", "blood.type")
+           blood = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~assign_blood_prod(stringr::str_to_lower(Clinical.Event)),
+                            "Clinical.Event.Result")
+               nm <- c("pie.id", "blood.datetime", "blood.prod", "blood.type")
+           },
 
-    } else if (type == "demographics") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     "Person.ID",
-                     ~as.numeric(Age..Years..Visit.),
-                     ~factor(Sex, exclude = c("", "Unknown")),
-                     ~factor(Race, exclude = c("", "Unknown")),
-                     ~factor(Discharge.Disposition),
-                     ~as.numeric(LOS..Actual.),
-                     ~factor(Person.Location..Facility..Curr., exclude = ""),
-                     ~factor(Encounter.Type))
-        nm <- c("pie.id", "person.id", "age", "sex", "race", "disposition",
-                "los", "facility", "visit.type")
+           demographics = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            "Person.ID",
+                            ~as.numeric(Age..Years..Visit.),
+                            ~factor(Sex, exclude = c("", "Unknown")),
+                            ~factor(Race, exclude = c("", "Unknown")),
+                            ~factor(Discharge.Disposition),
+                            ~as.numeric(LOS..Actual.),
+                            ~factor(Person.Location..Facility..Curr., exclude = ""),
+                            ~factor(Encounter.Type))
+               nm <- c("pie.id", "person.id", "age", "sex", "race", "disposition",
+                       "los", "facility", "visit.type")
+           },
 
-    } else if (type == "diagnosis") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     "ICD9.Diagnosis.Code",
-                     ~factor(Diagnosis.Type, exclude = ""),
-                     ~factor(Diagnosis.Code.Sequence))
-        nm <- c("pie.id", "diag.code", "diag.type", "diag.seq")
+           diagnosis = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            "ICD9.Diagnosis.Code",
+                            ~factor(Diagnosis.Type, exclude = ""),
+                            ~factor(Diagnosis.Code.Sequence))
+               nm <- c("pie.id", "diag.code", "diag.type", "diag.seq")
+           },
 
-    } else if (type == "encounters") {
-        dots <- list("Person.ID",
-                     "PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Admit.Date...Time),
-                     ~factor(Encounter.Type, exclude = ""),
-                     ~factor(Person.Location...Facility..Admit., exclude = ""),
-                     ~factor(Discharge.Disposition, exclude = ""))
-        nm <- c("person.id", "pie.id", "admit.datetime", "encounter.type",
-                "location", "disposition")
+           encounters = {
+               dots <- list("Person.ID",
+                            "PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Admit.Date...Time),
+                            ~factor(Encounter.Type, exclude = ""),
+                            ~factor(Person.Location...Facility..Admit., exclude = ""),
+                            ~factor(Discharge.Disposition, exclude = ""))
+               nm <- c("person.id", "pie.id", "admit.datetime", "encounter.type",
+                       "location", "disposition")
+           },
 
-    } else if (type == "home_meds") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~stringr::str_to_lower(Order.Catalog.Short.Description),
-                     "Order.Catalog.Mnemonic",
-                     ~factor(Orig.Orderable.Type.Flag.Desc))
-        nm <- c("pie.id", "med", "order.name", "med.type")
+           home_meds = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~stringr::str_to_lower(Order.Catalog.Short.Description),
+                            "Order.Catalog.Mnemonic",
+                            ~factor(Orig.Orderable.Type.Flag.Desc))
+               nm <- c("pie.id", "med", "order.name", "med.type")
+           },
 
-    } else if (type == "id") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     "Formatted.Financial.Nbr",
-                     "Person.ID")
-        nm <- c("pie.id", "fin", "person.id")
+           id = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            "Formatted.Financial.Nbr",
+                            "Person.ID")
+               nm <- c("pie.id", "fin", "person.id")
+           },
 
-    } else if (type == "icu_assess") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     "Clinical.Event.Result")
-        nm <- c("pie.id", "assess.datetime", "assessment", "assess.result")
+           icu_assess = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            "Clinical.Event.Result")
+               nm <- c("pie.id", "assess.datetime", "assessment", "assess.result")
+           },
 
-    } else if (type == "labs") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     "Clinical.Event.Result")
-        nm <- c("pie.id", "lab.datetime", "lab", "lab.result")
+           labs = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            "Clinical.Event.Result")
+               nm <- c("pie.id", "lab.datetime", "lab", "lab.result")
+           },
 
-    } else if (type == "locations") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     "Person.Location...Nurse.Unit..From.",
-                     "Person.Location...Nurse.Unit..To.",
-                     ~lubridate::ymd_hms(Location.Arrival.Date...Time),
-                     ~lubridate::ymd_hms(Location.Depart.Date...Time))
-        nm <- c("pie.id", "unit.from", "unit.to", "arrive.datetime",
-                "depart.datetime")
+           locations = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            "Person.Location...Nurse.Unit..From.",
+                            "Person.Location...Nurse.Unit..To.",
+                            ~lubridate::ymd_hms(Location.Arrival.Date...Time),
+                            ~lubridate::ymd_hms(Location.Depart.Date...Time))
+               nm <- c("pie.id", "unit.from", "unit.to", "arrive.datetime",
+                       "depart.datetime")
+           },
 
-    } else if (type == "measures") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     ~as.numeric(Clinical.Event.Result),
-                     ~factor(Clinical.Event.Result.Units))
-        nm <- c("pie.id", "measure.datetime", "measure", "measure.result",
-                "measure.units")
+           measures = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            ~as.numeric(Clinical.Event.Result),
+                            ~factor(Clinical.Event.Result.Units))
+               nm <- c("pie.id", "measure.datetime", "measure", "measure.result",
+                       "measure.units")
+           },
 
-    } else if (type == "meds_continuous") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     ~as.numeric(Infusion.Rate),
-                     ~factor(Infusion.Rate.Unit, exclude = ""),
-                     "Event.ID")
-        nm <- c("pie.id", "med.datetime", "med", "med.rate", "med.rate.units",
-                "event.id")
+           meds_continuous = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            ~as.numeric(Infusion.Rate),
+                            ~factor(Infusion.Rate.Unit, exclude = ""),
+                            "Event.ID")
+               nm <- c("pie.id", "med.datetime", "med", "med.rate", "med.rate.units",
+                       "event.id")
+           },
 
-    } else if (type == "meds_sched") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     ~as.numeric(Dosage.Amount),
-                     ~factor(Dosage.Unit, exclude = ""),
-                     ~factor(Route.of.Administration...Short, exclude = ""),
-                     "Event.ID")
-        nm <- c("pie.id", "med.datetime", "med", "med.dose", "med.dose.units",
-                "med.route", "event.id")
+           meds_sched = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            ~as.numeric(Dosage.Amount),
+                            ~factor(Dosage.Unit, exclude = ""),
+                            ~factor(Route.of.Administration...Short, exclude = ""),
+                            "Event.ID")
+               nm <- c("pie.id", "med.datetime", "med", "med.dose", "med.dose.units",
+                       "med.route", "event.id")
+           },
 
-    } else if (type == "meds_sched_freq") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     ~as.numeric(Dosage.Amount),
-                     ~factor(Dosage.Unit, exclude = ""),
-                     ~factor(Route.of.Administration...Short, exclude = ""),
-                     "Parent.Order.Frequency.Description",
-                     "Event.ID")
-        nm <- c("pie.id", "med.datetime", "med", "med.dose", "med.dose.units",
-                "med.route", "freq", "event.id")
+           meds_sched_freq = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            ~as.numeric(Dosage.Amount),
+                            ~factor(Dosage.Unit, exclude = ""),
+                            ~factor(Route.of.Administration...Short, exclude = ""),
+                            "Parent.Order.Frequency.Description",
+                            "Event.ID")
+               nm <- c("pie.id", "med.datetime", "med", "med.dose", "med.dose.units",
+                       "med.route", "freq", "event.id")
+           },
 
-    } else if (type == "problems") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     "Problem...Description",
-                     ~factor(Problem.Classification, exclude = ""),
-                     ~factor(Problem.Confirmation.Status, exclude = ""),
-                     ~factor(Problem.Free.Text, exclude = ""),
-                     ~factor(Problem.Severity, exclude = ""),
-                     ~factor(Problem.Source.Active.Indicator, exclude = ""),
-                     ~lubridate::ymd_hms(Problem.Onset.Date...Time),
-                     ~factor(Problem.Life.Cycle, exclude = ""),
-                     ~lubridate::ymd_hms(Problem.Life.Cycle.Date...Time))
-        nm <- c("pie.id", "problem", "classification", "confirm", "free.text",
-                "severity", "active", "onset.datetime", "life.cycle",
-                "life.cycle.datetime")
+           problems = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            "Problem...Description",
+                            ~factor(Problem.Classification, exclude = ""),
+                            ~factor(Problem.Confirmation.Status, exclude = ""),
+                            ~factor(Problem.Free.Text, exclude = ""),
+                            ~factor(Problem.Severity, exclude = ""),
+                            ~factor(Problem.Source.Active.Indicator, exclude = ""),
+                            ~lubridate::ymd_hms(Problem.Onset.Date...Time),
+                            ~factor(Problem.Life.Cycle, exclude = ""),
+                            ~lubridate::ymd_hms(Problem.Life.Cycle.Date...Time))
+               nm <- c("pie.id", "problem", "classification", "confirm", "free.text",
+                       "severity", "active", "onset.datetime", "life.cycle",
+                       "life.cycle.datetime")
+           },
 
-    } else if (type == "procedures") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Procedure.Date.and.Time),
-                     "ICD9.Procedure.Code")
-        nm <- c("pie.id", "proc.date", "proc.code")
+           procedures = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Procedure.Date.and.Time),
+                            "ICD9.Procedure.Code")
+               nm <- c("pie.id", "proc.date", "proc.code")
+           },
 
-    } else if (type == "radiology") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     "Clinical.Event")
-        nm <- c("pie.id", "rad.datetime", "rad.type")
+           radiology = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            "Clinical.Event")
+               nm <- c("pie.id", "rad.datetime", "rad.type")
+           },
 
-    } else if (type == "surgeries") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Start.Date.Time),
-                     ~lubridate::ymd_hms(Stop.Date.Time),
-                     "Procedure",
-                     ~ifelse(Add.On.Indicator == 1, TRUE, FALSE),
-                     ~factor(ASA.Class, exclude = ""),
-                     ~ifelse(Primary.Procedure.Indicator == 1, TRUE, FALSE))
-        nm <- c("pie.id", "surg.start.datetime", "surg.stop.datetime",
-                "surgery", "add.on", "asa.class", "primary.proc")
+           surgeries = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Start.Date.Time),
+                            ~lubridate::ymd_hms(Stop.Date.Time),
+                            "Procedure",
+                            ~ifelse(Add.On.Indicator == 1, TRUE, FALSE),
+                            ~factor(ASA.Class, exclude = ""),
+                            ~ifelse(Primary.Procedure.Indicator == 1, TRUE, FALSE))
+               nm <- c("pie.id", "surg.start.datetime", "surg.stop.datetime",
+                       "surgery", "add.on", "asa.class", "primary.proc")
+           },
 
-    } else if (type == "uop") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     "Clinical.Event.Result")
-        nm <- c("pie.id", "uop.datetime", "uop.event", "uop.result")
+           uop = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            "Clinical.Event.Result")
+               nm <- c("pie.id", "uop.datetime", "uop.event", "uop.result")
+           },
 
-    } else if (type == "vent") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     "Clinical.Event.Result")
-        nm <- c("pie.id", "vent.datetime", "vent.event", "vent.result")
+           vent = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            "Clinical.Event.Result")
+               nm <- c("pie.id", "vent.datetime", "vent.event", "vent.result")
+           },
 
-    } else if (type == "vitals") {
-        dots <- list("PowerInsight.Encounter.Id",
-                     ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
-                     ~stringr::str_to_lower(Clinical.Event),
-                     "Clinical.Event.Result")
-        nm <- c("pie.id", "vital.datetime", "vital", "vital.result")
+           vitals = {
+               dots <- list("PowerInsight.Encounter.Id",
+                            ~lubridate::ymd_hms(Clinical.Event.End.Date.Time),
+                            ~stringr::str_to_lower(Clinical.Event),
+                            "Clinical.Event.Result")
+               nm <- c("pie.id", "vital.datetime", "vital", "vital.result")
+           },
 
-    } else {
-        print("Invalid type")
-        return(NULL)
-    }
+           stop("Invalid type")
+    )
 
     # apply the parameters to the columns, remove any remaining columns
     tidy.data <- dplyr::transmute_(raw.data, .dots = setNames(dots, nm))
