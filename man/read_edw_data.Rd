@@ -4,7 +4,7 @@
 \alias{read_edw_data}
 \title{Read EDW data from csv files}
 \usage{
-read_edw_data(data.dir, file.name, type = NA)
+read_edw_data(data.dir, file.name, type = NA, check.distinct = FALSE)
 }
 \arguments{
 \item{data.dir}{A character string with the name of the directory containing
@@ -14,6 +14,9 @@ the data files}
 match}
 
 \item{type}{An optional character string indicating type of data being tidied}
+
+\item{check.distinct}{An optional logical, calls
+\code{\link[dplyr]{distinct}} on the imported data if \code{TRUE}}
 }
 \value{
 A data frame (tbl_df)
@@ -26,6 +29,11 @@ matching csv files and binds them together into a data frame
 This function takes a directory and file name and reads in all matching csv
 files and binds them together into a data frame using
 \code{\link[readr]{read_csv}} from the readr package.
+
+Valid options for type include: admit_dc, blood, charges, demographisc,
+diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
+measures, meds_continuous, meds_sched, meds_sched_freq, mpp, problems,
+procedures, radiology, surgeries, uop, vent, vitals, warfarin
 }
 \seealso{
 \code{\link[readr]{read_csv}}

@@ -39,19 +39,26 @@ read_data <- function(data.dir, file.name) {
 #' files and binds them together into a data frame using
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
+#' Valid options for type include: admit_dc, blood, charges, demographisc,
+#' diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
+#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, problems,
+#' procedures, radiology, surgeries, uop, vent, vitals, warfarin
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
 #' @param file.name A character string with name of data file or pattern to
 #'   match
 #' @param type An optional character string indicating type of data being tidied
+#' @param check.distinct An optional logical, calls
+#'   \code{\link[dplyr]{distinct}} on the imported data if \code{TRUE}
 #'
 #' @return A data frame (tbl_df)
 #'
 #' @seealso \code{\link[readr]{read_csv}}
 #'
 #' @export
-read_edw_data <- function(data.dir, file.name, type = NA) {
+read_edw_data <- function(data.dir, file.name, type = NA,
+                          check.distinct = FALSE) {
     # if type is NA, then set type to file.name
     if (is.na(type)) {
         type <- file.name
@@ -61,64 +68,59 @@ read_edw_data <- function(data.dir, file.name, type = NA) {
     raw <- list.files(data.dir, pattern = file.name, full.names = TRUE)
 
     exclude <- c("", "Unknown")
+    raw.names <- list(id = "PowerInsight Encounter Id",
+                      dt = "Clinical Event End Date/Time",
+                      ev = "Clinical Event",
+                      res = "Clinical Event Result")
     pt.id <- "pie.id"
-    dt.format <- "%Y/%m/%d %H:%M:%S"
     dots <- NULL
     nm <- NULL
 
-    col_character <- readr::col_character
-    col_datetime <- readr::col_datetime
-    col_double <- readr::col_double
-    col_factor <- readr::col_factor
-    col_integer <- readr::col_integer
-    col_skip <- readr::col_skip
+    col_dt <- readr::col_datetime(format = "%Y/%m/%d %H:%M:%S")
+
+    # set defaults which are used in multiple types
+    col.raw <- c(raw.names$id, raw.names$dt, raw.names$ev, raw.names$res)
+    col.names <- c(pt.id, "event.datetime", "event", "result")
+    col.types <- readr::cols_only("c", col_dt, "c", "c")
 
     switch(type,
            admit_dc = {
-               col_names <- c(pt.id, "arrival.datetime", "admit.datetime",
+               col.raw <- c(raw.names$id, "Arrival Date & Time",
+                            "Admit Date & Time", "Discharge Date & Time")
+               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
                        "discharge.datetime")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_datetime(format = dt.format),
-                                        col_datetime(format = dt.format))
+               col.types <- readr::cols("c", col_dt, col_dt, col_dt)
            },
 
            blood = {
-               col_names <- c(pt.id, "blood.datetime", "blood.prod",
+               # use default columns
+               col.names <- c(pt.id, "blood.datetime", "blood.prod",
                               "blood.type")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
                dots <- list(~assign_blood_prod(stringr::str_to_lower(blood.prod)))
                nm <- "blood.prod"
            },
 
            charges = {
-               col_names <- c(pt.id, "cdm.code", "service.date", "institution")
-               col_types <- readr::cols(col_character(),
-                                        col_character(),
-                                        col_skip(),
-                                        col_datetime(format = dt.format),
-                                        col_skip(),
-                                        col_character())
+               col.raw <- c(raw.names$id, "Cdm Code", "Service Date",
+                            "Institution Desc")
+               col.names <- c(pt.id, "cdm.code", "service.date", "institution")
+               col.types <- readr::cols_only("c", "c", col_dt, "c")
            },
 
            demographics = {
-               col_names <- c(pt.id, "age", "sex", "race", "disposition",
+               col.raw <- c(raw.names$id, "Age- Years (Visit)", "Sex", "Race",
+                            "Discharge Disposition", "LOS (Actual)",
+                            "Encounter Type", "Person ID",
+                            "Person Location- Facility (Curr)")
+               col.names <- c(pt.id, "age", "sex", "race", "disposition",
                               "length.stay", "visit.type", "person.id",
                               "facility")
                race <- c("African American", "Asian", "Latin American",
                          "Native Am.", "Other", "White/Caucasian")
-               col_types <- readr::cols(col_character(),
-                                        col_integer(),
-                                        col_factor(c("Female", "Male")),
-                                        col_factor(race),
-                                        col_character(),
-                                        col_double(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character())
+               col.types <- readr::cols("c", "i",
+                                        readr::col_factor(c("Female", "Male")),
+                                        readr::col_factor(race),
+                                        "c", "d", "c", "c", "c")
                dots <- list(~factor(disposition, exclude = exclude),
                             ~factor(visit.type, exclude = exclude),
                             ~factor(facility, exclude = exclude))
@@ -126,24 +128,20 @@ read_edw_data <- function(data.dir, file.name, type = NA) {
            },
 
            diagnosis = {
-               col_names <- c(pt.id, "diag.code", "diag.type", "diag.seq")
-               col_types <- readr::cols(col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_factor(c(0, 1, 99)))
-               dots <- list(~factor(diag.type, exclude = exclude))
-               nm <- "diag.type"
+               col.raw <- c(raw.names$id, "ICD9 Diagnosis Code",
+                            "Diagnosis Type", "Diagnosis Code Sequence")
+               col.names <- c(pt.id, "diag.code", "diag.type", "diag.seq")
+               col.types <- readr::cols("c", "c", "c", "c")
            },
 
            encounters = {
-               col_names <- c("person.id", "admit.datetime", pt.id,
+               col.raw <- c("Person ID", "Admit Date & Time", raw.names$id,
+                            "Encounter Type",
+                            "Person Location - Facility (Admit)",
+                            "Discharge Disposition")
+               col.names <- c("person.id", "admit.datetime", pt.id,
                               "visit.type", "facility", "disposition")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character())
+               col.types <- readr::cols("c", col_dt, "c", "c", "c", "c")
                dots <- list(~factor(visit.type, exclude = exclude),
                             ~factor(facility, exclude = exclude),
                             ~factor(disposition, exclude = exclude))
@@ -151,177 +149,145 @@ read_edw_data <- function(data.dir, file.name, type = NA) {
            },
 
            events = {
-               col_names <- c(pt.id, "event.datetime", "event", "event.result")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
+               # use default columns
+               col.names <- c(pt.id, "event.datetime", "event", "event.result")
                dots <- list(~stringr::str_to_lower(event))
                nm <- "event"
            },
 
            home_meds = {
-               col_names <- c(pt.id, "med", "order.name", "med.type")
-               col_types <- readr::cols(col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character())
-               dots <- list(~stringr::str_to_lower(med),
-                            ~factor(med.type))
-               nm <- c("med", "med.type")
-           },
-
-           id = {
-               col_names <- c(pt.id, "fin", "person.id")
-               col_types <- readr::cols(col_character(),
-                                        col_character(),
-                                        col_character())
+               col.raw <- c(raw.names$id, "Orig Orderable Type-Flag Desc",
+                            "Order Catalog Short Description",
+                            "Order Catalog Mnemonic")
+               col.names <- c(pt.id, "med", "order.name", "med.type")
+               col.types <- readr::cols("c", "c", "c", "c")
+               dots <- list(~stringr::str_to_lower(med))
+               nm <- "med"
            },
 
            icu_assess = {
-               col_names <- c(pt.id, "assess.datetime", "assessment", "assess.result")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
+               # use default columns
+               col.names <- c(pt.id, "assess.datetime", "assessment",
+                              "assess.result")
                dots <- list(~stringr::str_to_lower(assessment))
                nm <- "assessment"
            },
 
+           id = {
+               col.raw <- c(raw.names$id, "Formatted Financial Nbr",
+                            "Person ID")
+               col.names <- c(pt.id, "fin", "person.id")
+               col.types <- readr::cols("c", "c", "c")
+           },
+
            labs = {
-               col_names <- c(pt.id, "lab.datetime", "lab", "lab.result")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
+               # use default columns
+               col.names <- c(pt.id, "lab.datetime", "lab", "lab.result")
                dots <- list(~stringr::str_to_lower(lab))
                nm <- "lab"
            },
 
            locations = {
-               col_names <- c(pt.id, "unit.from", "unit.to", "arrive.datetime",
-                              "depart.datetime")
-               col_types <- readr::cols(col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_datetime(format = dt.format))
+               col.raw <- c(raw.names$id, "Location Arrival Date & Time",
+                            "Location Depart Date & Time",
+                            "Person Location - Nurse Unit (To)",
+                            "Person Location - Nurse Unit (From)")
+               col.names <- c(pt.id, "arrive.datetime", "depart.datetime",
+                              "unit.to", "unit.from")
+               col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
            },
 
            measures = {
-               col_names <- c(pt.id, "measure.datetime", "measure",
+               col.raw <- c(raw.names$id, raw.names$dt, raw.names$ev,
+                            raw.names$res, "Clinical Event Result Units")
+               col.names <- c(pt.id, "measure.datetime", "measure",
                               "measure.result", "measure.units")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_factor(c("Height", "Weight")),
-                                        col_double(),
-                                        col_factor(c("cm", "in", "lb", "kg")))
+               col.types <- readr::cols("c", col_dt, "c", "d", "c")
            },
 
            meds_continuous = {
-               col_names <- c(pt.id, "med.datetime", "med", "med.rate",
+               col.raw <- c(raw.names$id, raw.names$dt, raw.names$ev,
+                               "Infusion Rate", "Infusion Rate Unit",
+                               "Event ID")
+               col.names <- c(pt.id, "med.datetime", "med", "med.rate",
                               "med.rate.units", "event.id")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_double(),
-                                        col_character(),
-                                        col_character())
-               dots <- list(~stringr::str_to_lower(med),
-                            ~factor(med.rate.units, exclude = exclude))
-               nm <- c("med", "med.rate.units")
+               col.types <- readr::cols("c", col_dt, "c", "d", "c", "c")
+               dots <- list(~stringr::str_to_lower(med))
+               nm <- "med"
            },
 
            meds_sched = {
-               col_names <- c(pt.id, "med.datetime", "med", "med.dose",
+               col.raw <- c(raw.names$id, raw.names$dt, raw.names$ev,
+                            "Dosage Amount", "Dosage Unit",
+                            "Route of Administration - Short",
+                            "Event ID")
+               col.names <- c(pt.id, "med.datetime", "med", "med.dose",
                               "med.dose.units", "med.route", "event.id")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_double(),
-                                        col_character(),
-                                        col_character(),
-                                        col_skip(),
-                                        col_character())
-               dots <- list(~stringr::str_to_lower(med),
-                            ~factor(med.dose.units, exclude = exclude),
-                            ~factor(med.route, exclude = exclude))
-               nm <- c("med", "med.dose.units", "med.route")
+               col.types <- readr::cols_only("c", col_dt, "c", "d", "c", "c",
+                                             "c")
+               dots <- list(~stringr::str_to_lower(med))
+               nm <- "med"
            },
 
            meds_sched_freq = {
-               col_names <- c(pt.id, "med.datetime", "med", "med.dose",
-                              "med.dose.units", "med.route", "event.id")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_double(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character())
-               dots <- list(~stringr::str_to_lower(med),
-                            ~factor(med.dose.units, exclude = exclude),
-                            ~factor(med.route, exclude = exclude),
-                            ~factor(freq, exclude = exclude))
-               nm <- c("med", "med.dose.units", "med.route", "freq")
+               col.raw <- c(raw.names$id, raw.names$dt, raw.names$ev,
+                            "Dosage Amount", "Dosage Unit",
+                            "Route of Administration - Short",
+                            "Parent Order Frequency Description","Event ID")
+               col.names <- c(pt.id, "med.datetime", "med", "med.dose",
+                              "med.dose.units", "med.route", "freq", "event.id")
+               col.types <- readr::cols_only("c", col_dt, "c", "d", "c", "c",
+                                             "c", "c")
+               dots <- list(~stringr::str_to_lower(med))
+               nm <- "med"
            },
 
            mpp = {
-               col_names <- c(pt.id, "mpp")
-               col_types <- readr::cols(col_character(), col_character())
+               col.raw <- c(raw.names$id, "MPP (which generated order)")
+               col.names <- c(pt.id, "mpp")
+               col.types <- readr::cols("c", "c")
            },
 
            problems = {
-               col_names <- c(pt.id, "problem", "classification", "confirm",
+               col.raw <- c(raw.names$id, "Problem - Description",
+                            "Problem Classification",
+                            "Problem Confirmation Status",
+                            "Problem Free Text", "Problem Severity",
+                            "Problem Source Active Indicator",
+                            "Problem Onset Date & Time",
+                            "Problem Life Cycle Date & Time",
+                            "Problem Life Cycle")
+               col.names <- c(pt.id, "problem", "classification", "confirm",
                               "free.text", "severity", "active",
                               "onset.datetime", "life.cycle",
                               "life.cycle.datetime")
-               col_types <- readr::cols(col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_datetime(format = dt.format))
-               dots <- list(~factor(classification, exclude = exclude),
-                            ~factor(confirm, exclude = exclude),
-                            ~factor(free.text, exclude = exclude),
-                            ~factor(severity, exclude = exclude),
-                            ~factor(active, exclude = exclude),
-                            ~factor(life.cycle, exclude = exclude))
-               nm <- c("classification", "confirm", "free.text", "severity",
-                       "active", "life.cycle")
+               col.types <- readr::cols("c", "c", "c", "c", "c", "c", "c",
+                                        col_dt, col_dt, "c")
            },
 
            procedures = {
-               col_names <- c(pt.id, "proc.date", "proc.code")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character())
+               col.raw <- c(raw.names$id, "Procedure Date and Time",
+                            "ICD9 Procedure Code")
+               col.names <- c(pt.id, "proc.date", "proc.code")
+               col.types <- readr::cols("c", col_dt, "c")
            },
 
            radiology = {
-               col_names <- c(pt.id, "rad.datetime", "rad.type")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character())
+               col.raw <- c(raw.names$id, raw.names$dt, raw.names$ev)
+               col.names <- c(pt.id, "rad.datetime", "rad.type")
+               col.types <- readr::cols("c", col_dt, "c")
            },
 
            surgeries = {
-               col_names <- c(pt.id, "surg.start.datetime",
-                              "surg.stop.datetime", "surgery", "add.on",
-                              "asa.class", "primary.proc")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character(),
-                                        col_character(),
-                                        col_character())
+               col.raw <- c(raw.names$id, "Priority", "ASA Class Description",
+                            "Add On Indicator", "Procedure",
+                            "Primary Procedure Indicator", "Start Date/Time",
+                            "Stop Date/Time")
+               col.names <- c(pt.id, "priority", "asa.class", "add.on",
+                              "surgery", "primary.proc", "surg.start.datetime",
+                              "surg.stop.datetime")
+               col.types <- readr::cols_only("c", "c", "c", "c", "c", "c",
+                                             col_dt, col_dt)
                dots <- list(~ifelse(add.on == 1, TRUE, FALSE),
                             ~factor(asa.class, exclude = exclude),
                             ~ifelse(primary.proc == 1, TRUE, FALSE))
@@ -329,42 +295,30 @@ read_edw_data <- function(data.dir, file.name, type = NA) {
            },
 
            uop = {
-               col_names <- c(pt.id, "uop.datetime", "uop.event", "uop.result")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
+               # use default columns
+               col.names <- c(pt.id, "uop.datetime", "uop.event", "uop.result")
                dots <- list(~stringr::str_to_lower(uop.event))
                nm <- "uop.event"
            },
 
            vent = {
-               col_names <- c(pt.id, "vent.datetime", "vent.event", "vent.result")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
+               # use default columns
+               col.names <- c(pt.id, "vent.datetime", "vent.event", "vent.result")
                dots <- list(~stringr::str_to_lower(vent.event))
                nm <- "vent.event"
            },
 
            vitals = {
-               col_names <- c(pt.id, "vital.datetime", "vital", "vital.result")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
+               # use default columns
+               col.names <- c(pt.id, "vital.datetime", "vital", "vital.result")
                dots <- list(~stringr::str_to_lower(vital))
                nm <- "vital"
            },
 
            warfarin = {
-               col_names <- c(pt.id, "warfarin.datetime", "warfarin.event",
+               # use default columns
+               col.names <- c(pt.id, "warfarin.datetime", "warfarin.event",
                               "warfarin.result")
-               col_types <- readr::cols(col_character(),
-                                        col_datetime(format = dt.format),
-                                        col_character(),
-                                        col_character())
                dots <- list(~stringr::str_to_lower(warfarin.event))
                nm <- "warfarin.event"
            },
@@ -373,13 +327,22 @@ read_edw_data <- function(data.dir, file.name, type = NA) {
 
     )
 
-    # loop through all matching files and read in to list take list of files and
-    # bind them together into a data frame; will set column names based on the
-    # type of data, so skip the header row
-    read <- purrr::map_df(raw, readr::read_csv, col_names = col_names,
-                          col_types = col_types, skip = 1)
-    read <- dplyr::distinct_(read)
+    # sets column names to be read in; read all matching files into a single
+    # data_frame
+    col.types$cols <- purrr::set_names(col.types$cols, col.raw)
+    read <- purrr::map_df(raw, readr::read_csv, col_types = col.types)
 
+    # convert vector of columns to a list of symbols which work with dplyr, then
+    # rename columns to more convenient names
+    col.raw <- purrr::map(col.raw, as.symbol)
+    read <- dplyr::rename_(read, .dots = setNames(col.raw, col.names))
+
+    # indicator to remove duplicates; defaults to FALSE for faster read times
+    if (check.distinct == TRUE) {
+        read <- dplyr::distinct_(read)
+    }
+
+    # perform any necessary data mutations
     if (!is.null(dots)) {
         read <- dplyr::mutate_(read, .dots = setNames(dots, nm))
     }
