@@ -142,33 +142,39 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #' @param table.title A character string
 #' @param group An optional character string indicating the name of the column
 #'   to group on; defaults to "group", set group to NULL to remove grouping
+#' @param cram An optional logical, if \code{TRUE} then all logical and 2-level factor variables
 #'
 #' @return A docx object
 #'
 #' @seealso \code{\link[ReporteRs]{FlexTable}}
 #'
 #' @export
-result_table <- function(mydoc, test, table.title, group = "group") {
+result_table <- function(mydoc, test, table.title, group = "group",
+                         cram = FALSE) {
     # determine which variables are continous
     cont <- purrr::keep(test, is.numeric)
-    contVars <- names(cont)
+    cont.vars <- names(cont)
+
+    cram.vars <- ""
 
     # determine which variables are logical or factors with only two levels
-    cram <- purrr::keep(test, is.logical)
-    cramVars <- names(cram)
+    if (cram == TRUE) {
+        cram.vars <- purrr::keep(test, is.logical)
+        cram.vars <- names(cram.vars)
 
-    cramF <- purrr::keep(test, is.factor)
-    cramF <- purrr::keep(cramF, ~ length(levels(.x)) == 2)
-    cramVars <- c(cramVars, names(cramF))
+        cram.fact <- purrr::keep(test, is.factor)
+        cram.fact <- purrr::keep(cram.fact, ~ length(levels(.x)) == 2)
+        cram.vars <- c(cram.vars, names(cramF))
+    }
 
-    not.nrmlVars <- ""
+    not.nrml.vars <- ""
 
     # if there are continuous variables, perform normality testing
     if (length(cont) > 0) {
         nrml <- normal_test(cont)
 
         not.nrml <- dplyr::filter_(nrml, .dots = list(~p.value < 0.05))
-        not.nrmlVars <- not.nrml$data.name
+        not.nrml.vars <- not.nrml$data.name
     }
 
     # create tableone, use print to make a data frame
@@ -177,8 +183,9 @@ result_table <- function(mydoc, test, table.title, group = "group") {
     } else {
         tab <- create_tableone(test, group)
     }
-    tab1 <- print(tab, printToggle = FALSE, nonnormal = not.nrmlVars,
-                  cramVars = cramVars)
+
+    tab1 <- print(tab, printToggle = FALSE, nonnormal = not.nrml.vars,
+                  cramVars = cram.vars)
 
     # get the FlexTable object
     mytable <- make_flextable(tab1)
