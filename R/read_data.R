@@ -23,7 +23,7 @@
 #'
 #' @export
 read_data <- function(data.dir, file.name, base = FALSE,
-                      check.distinct = FALSE) {
+                      check.distinct = TRUE) {
     # get list of files is specified directory and matching file name
     raw <- list.files(data.dir, pattern = file.name, full.names = TRUE)
     # loop through all matching files and read in to list take list of files and
@@ -70,7 +70,7 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #'
 #' @export
 read_edw_data <- function(data.dir, file.name, type = NA,
-                          check.distinct = FALSE) {
+                          check.distinct = TRUE) {
     # if type is NA, then set type to file.name
     if (is.na(type)) {
         type <- file.name
