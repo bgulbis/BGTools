@@ -7,7 +7,7 @@
 result_table(mydoc, test, table.title, group = "group")
 }
 \arguments{
-\item{mydoc}{A docx object}
+\item{mydoc}{Either a docx object, or string as "html" or "table"}
 
 \item{test}{A data frame}
 
@@ -24,9 +24,12 @@ A docx object
 Word
 }
 \details{
-This function takes a data frame and converts it to a FlexTable. The
-FlexTable is then added to the docx object which is returned. The docx object
-can then be written to a Microsoft Word document.
+This function takes a data frame and converts it to a FlexTable. If mydoc is
+a docx object, then the FlexTable is added to the docx object which is
+returned. The docx object can then be written to a Microsoft Word document.
+
+If mydoc is the string "html", then the FlexTable is converted to HTML.
+If mydoc is the string "table", then the FlexTable itself is returned.
 }
 \seealso{
 \code{\link[ReporteRs]{FlexTable}}

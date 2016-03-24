@@ -130,11 +130,14 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #' \code{result_table} make a table with results to be inserted into Microsoft
 #' Word
 #'
-#' This function takes a data frame and converts it to a FlexTable. The
-#' FlexTable is then added to the docx object which is returned. The docx object
-#' can then be written to a Microsoft Word document.
+#' This function takes a data frame and converts it to a FlexTable. If mydoc is
+#' a docx object, then the FlexTable is added to the docx object which is
+#' returned. The docx object can then be written to a Microsoft Word document.
 #'
-#' @param mydoc A docx object
+#' If mydoc is the string "html", then the FlexTable is converted to HTML.
+#' If mydoc is the string "table", then the FlexTable itself is returned.
+#'
+#' @param mydoc Either a docx object, or string as "html" or "table"
 #' @param test A data frame
 #' @param table.title A character string
 #' @param group An optional character string indicating the name of the column
@@ -177,18 +180,27 @@ result_table <- function(mydoc, test, table.title, group = "group") {
     tab1 <- print(tab, printToggle = FALSE, nonnormal = not.nrmlVars,
                   cramVars = cramVars)
 
-    mydoc <- ReporteRs::addParagraph(mydoc, "")
-
-    # add title before table, will output as "Table X: Title"
-    mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
-
     # get the FlexTable object
     mytable <- make_flextable(tab1)
 
-    # add the FlexTable to docx object and return
-    mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
+    # if mydoc is docx object, insert FlexTable into docx object; if a string
+    # "html" then return the table as HTML, otherwise return the FlexTable
+    # object
+    if (class(mydoc) == "docx") {
+        mydoc <- ReporteRs::addParagraph(mydoc, "")
 
-    return(mydoc)
+        # add title before table, will output as "Table X: Title"
+        mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
+
+        # add the FlexTable to docx object and return
+        mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
+    } else if (mydoc == "html") {
+        mydoc <- ReporteRs::as.html(mytable)
+    } else {
+        return(mytable)
+    }
+
+    mydoc
 }
 
 # make a FlexTable
