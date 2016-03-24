@@ -16,7 +16,8 @@ result_table(mydoc, test, table.title, group = "group", cram = FALSE)
 \item{group}{An optional character string indicating the name of the column
 to group on; defaults to "group", set group to NULL to remove grouping}
 
-\item{cram}{An optional logical, if \code{TRUE} then all logical and 2-level factor variables}
+\item{cram}{An optional logical, if \code{TRUE} then all logical and 2-level
+factor variables}
 }
 \value{
 A docx object
@@ -30,8 +31,8 @@ This function takes a data frame and converts it to a FlexTable. If mydoc is
 a docx object, then the FlexTable is added to the docx object which is
 returned. The docx object can then be written to a Microsoft Word document.
 
-If mydoc is the string "html", then the FlexTable is converted to HTML.
-If mydoc is the string "table", then the FlexTable itself is returned.
+If mydoc is the string "html", then the FlexTable is converted to HTML. If
+mydoc is the string "table", then the FlexTable itself is returned.
 }
 \seealso{
 \code{\link[ReporteRs]{FlexTable}}

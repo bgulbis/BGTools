@@ -134,15 +134,16 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #' a docx object, then the FlexTable is added to the docx object which is
 #' returned. The docx object can then be written to a Microsoft Word document.
 #'
-#' If mydoc is the string "html", then the FlexTable is converted to HTML.
-#' If mydoc is the string "table", then the FlexTable itself is returned.
+#' If mydoc is the string "html", then the FlexTable is converted to HTML. If
+#' mydoc is the string "table", then the FlexTable itself is returned.
 #'
 #' @param mydoc Either a docx object, or string as "html" or "table"
 #' @param test A data frame
 #' @param table.title A character string
 #' @param group An optional character string indicating the name of the column
 #'   to group on; defaults to "group", set group to NULL to remove grouping
-#' @param cram An optional logical, if \code{TRUE} then all logical and 2-level factor variables
+#' @param cram An optional logical, if \code{TRUE} then all logical and 2-level
+#'   factor variables
 #'
 #' @return A docx object
 #'
@@ -167,15 +168,19 @@ result_table <- function(mydoc, test, table.title, group = "group",
         cram.vars <- c(cram.vars, names(cramF))
     }
 
-    not.nrml.vars <- ""
-
-    # if there are continuous variables, perform normality testing
-    if (length(cont) > 0) {
-        nrml <- normal_test(cont)
-
-        not.nrml <- dplyr::filter_(nrml, .dots = list(~p.value < 0.05))
-        not.nrml.vars <- not.nrml$data.name
-    }
+    # not.nrml.vars <- ""
+    #
+    # if (normal == "auto") {
+    #     # if there are continuous variables, perform normality testing
+    #     if (length(cont) > 0) {
+    #         nrml <- normal_test(cont)
+    #
+    #         not.nrml <- dplyr::filter_(nrml, .dots = list(~p.value < 0.05))
+    #         not.nrml.vars <- not.nrml$data.name
+    #     }
+    # } else if (normal == "medians") {
+    #     not.nrml.vars <- cont.vars
+    # }
 
     # create tableone, use print to make a data frame
     if (is.null(group)) {
@@ -184,11 +189,13 @@ result_table <- function(mydoc, test, table.title, group = "group",
         tab <- create_tableone(test, group)
     }
 
-    tab1 <- print(tab, printToggle = FALSE, nonnormal = not.nrml.vars,
-                  cramVars = cram.vars)
+    tab.cat <- print(tab$CatTable, printToggle = FALSE, cramVars = cram.vars)
+    tab.mean <- print(tab$ContTable, printToggle = FALSE)
+    tab.median <- print(tab$ContTable, printToggle = FALSE, nonnormal = cont.vars)
+    tab.join <- rbind(tab.cat, tab.mean, tab.median)
 
     # get the FlexTable object
-    mytable <- make_flextable(tab1)
+    mytable <- make_flextable(tab.join)
 
     # if mydoc is docx object, insert FlexTable into docx object; if a string
     # "html" then return the table as HTML, otherwise return the FlexTable

@@ -4,7 +4,7 @@
 \alias{read_data}
 \title{Read and join data from multiple csv files}
 \usage{
-read_data(data.dir, file.name, base = FALSE, check.distinct = FALSE)
+read_data(data.dir, file.name, base = FALSE, check.distinct = TRUE)
 }
 \arguments{
 \item{data.dir}{A character string with the name of the directory containing
