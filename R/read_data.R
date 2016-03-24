@@ -3,8 +3,7 @@
 #' Read and join data from multiple csv files
 #'
 #' \code{read_data} takes a directory and file name and reads in all matching
-#' csv files and binds them together into a data frame using the base function
-#' \code{\link{read.csv}}.
+#' csv files and binds them together into a data frame
 #'
 #' This function takes a directory and file name and reads in all matching csv
 #' files and binds them together into a data frame.
@@ -13,21 +12,34 @@
 #'   the data files
 #' @param file.name A character string with name of data file or pattern to
 #'   match
+#' @param base An optional logical, if \code{TRUE} then the base function
+#'   \code{\link{read.csv}} will be used
+#' @param check.distinct An optional logical, calls
+#'   \code{\link[dplyr]{distinct}} on the imported data if \code{TRUE}
 #'
 #' @return A data frame
 #'
-#' @seealso \code{\link{read.csv}}
+#' @seealso \code{\link{read.csv}} \code{\link[readr]{read_csv}}
 #'
 #' @export
-read_data <- function(data.dir, file.name) {
+read_data <- function(data.dir, file.name, base = FALSE,
+                      check.distinct = FALSE) {
     # get list of files is specified directory and matching file name
     raw <- list.files(data.dir, pattern = file.name, full.names = TRUE)
     # loop through all matching files and read in to list take list of files and
     # bind them together into a data frame
-    raw <- purrr::map_df(raw, read.csv, colClasses = "character")
+    if (base == FALSE) {
+        raw <- purrr::map_df(raw, readr::read_csv)
+    } else {
+        raw <- purrr::map_df(raw, read.csv, colClasses = "character")
+    }
 
-    # remove any duplicate rows
-    raw <- dplyr::distinct_(raw)
+    # indicator to remove duplicates; defaults to FALSE for faster read times
+    if (check.distinct == TRUE) {
+        raw <- dplyr::distinct_(raw)
+    }
+
+    raw
 }
 
 #' Read EDW data from csv files
