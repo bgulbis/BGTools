@@ -168,9 +168,9 @@ read_edw_data <- function(data.dir, file.name, type = NA,
            },
 
            home_meds = {
-               col.raw <- c(raw.names$id, "Orig Orderable Type-Flag Desc",
-                            "Order Catalog Short Description",
-                            "Order Catalog Mnemonic")
+               col.raw <- c(raw.names$id, "Order Catalog Short Description",
+                            "Order Catalog Mnemonic",
+                            "Orig Orderable Type-Flag Desc")
                col.names <- c(pt.id, "med", "order.name", "med.type")
                col.types <- readr::cols("c", "c", "c", "c")
                dots <- list(~stringr::str_to_lower(med))
