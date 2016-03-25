@@ -88,8 +88,7 @@ tidy_diagnosis <- function(ref.data, pt.data, patients) {
 
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
-    pts <- dplyr::select_(patients, "pie.id")
-    x <- dplyr::full_join(x, pts, by = "pie.id")
+    x <- dplyr::semi_join(x, patients, by = "pie.id")
     x <- dplyr::mutate_each_(x, funs(fill_false), list(quote(-pie.id)))
 
     return(x)
