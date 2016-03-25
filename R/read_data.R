@@ -34,7 +34,8 @@ read_data <- function(data.dir, file.name, base = FALSE,
         raw <- purrr::map_df(raw, read.csv, colClasses = "character")
     }
 
-    # indicator to remove duplicates; defaults to FALSE for faster read times
+    # indicator to remove duplicates; defaults to TRUE but use FALSE for faster
+    # read times
     if (check.distinct == TRUE) {
         raw <- dplyr::distinct_(raw)
     }
@@ -349,7 +350,8 @@ read_edw_data <- function(data.dir, file.name, type = NA,
     col.raw <- purrr::map(col.raw, as.symbol)
     read <- dplyr::rename_(read, .dots = setNames(col.raw, col.names))
 
-    # indicator to remove duplicates; defaults to FALSE for faster read times
+    # indicator to remove duplicates; defaults to TRUE but use FALSE for faster
+    # read times with large data sets
     if (check.distinct == TRUE) {
         read <- dplyr::distinct_(read)
     }

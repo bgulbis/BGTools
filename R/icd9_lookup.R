@@ -50,7 +50,7 @@ icd9_lookup <- function(df, procedure = FALSE) {
     # keep only the disease state and ICD9 code
     codes <- dplyr::select_(codes, .dots = list("disease.state", "icd9.code"))
     # group by disease state
-    codes <- dplyr::group_by_(codes, "disease.state")
+    # codes <- dplyr::group_by_(codes, "disease.state")
 
     return(codes)
 }
