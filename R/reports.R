@@ -163,9 +163,9 @@ result_table <- function(mydoc, test, table.title, group = "group",
         cram.vars <- purrr::keep(test, is.logical)
         cram.vars <- names(cram.vars)
 
-        cram.fact <- purrr::keep(test, is.factor)
-        cram.fact <- purrr::keep(cram.fact, ~ length(levels(.x)) == 2)
-        cram.vars <- c(cram.vars, names(cramF))
+        cram.factor <- purrr::keep(test, is.factor)
+        cram.factor <- purrr::keep(cram.factor, ~ length(levels(.x)) == 2)
+        cram.vars <- c(cram.vars, names(cram.factor))
     }
 
     # not.nrml.vars <- ""
