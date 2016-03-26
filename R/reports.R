@@ -142,8 +142,9 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #' @param table.title A character string
 #' @param group An optional character string indicating the name of the column
 #'   to group on; defaults to "group", set group to NULL to remove grouping
-#' @param cram An optional logical, if \code{TRUE} then all logical and 2-level
-#'   factor variables
+#' @param cram An optional character vector of column names or a logical; if
+#'   \code{TRUE} then all logical and 2-level factor variables will report both
+#'   levels
 #'
 #' @return A docx object
 #'
@@ -151,7 +152,7 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #'
 #' @export
 result_table <- function(mydoc, test, table.title, group = "group",
-                         cram = FALSE) {
+                         cram = NULL) {
     # determine which variables are continous
     cont <- purrr::keep(test, is.numeric)
     cont.vars <- names(cont)
@@ -159,13 +160,17 @@ result_table <- function(mydoc, test, table.title, group = "group",
     cram.vars <- ""
 
     # determine which variables are logical or factors with only two levels
-    if (cram == TRUE) {
-        cram.vars <- purrr::keep(test, is.logical)
-        cram.vars <- names(cram.vars)
+    if (!is.null(cram)) {
+        if (is.character(cram)) {
+            cram.vars <- cram
+        } else if (cram == TRUE) {
+            cram.vars <- purrr::keep(test, is.logical)
+            cram.vars <- names(cram.vars)
 
-        cram.factor <- purrr::keep(test, is.factor)
-        cram.factor <- purrr::keep(cram.factor, ~ length(levels(.x)) == 2)
-        cram.vars <- c(cram.vars, names(cram.factor))
+            cram.factor <- purrr::keep(test, is.factor)
+            cram.factor <- purrr::keep(cram.factor, ~ length(levels(.x)) == 2)
+            cram.vars <- c(cram.vars, names(cram.factor))
+        }
     }
 
     # not.nrml.vars <- ""

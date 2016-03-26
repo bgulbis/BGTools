@@ -4,7 +4,7 @@
 \alias{result_table}
 \title{Create a results table}
 \usage{
-result_table(mydoc, test, table.title, group = "group", cram = FALSE)
+result_table(mydoc, test, table.title, group = "group", cram = NULL)
 }
 \arguments{
 \item{mydoc}{Either a docx object, or string as "html" or "table"}
@@ -16,8 +16,9 @@ result_table(mydoc, test, table.title, group = "group", cram = FALSE)
 \item{group}{An optional character string indicating the name of the column
 to group on; defaults to "group", set group to NULL to remove grouping}
 
-\item{cram}{An optional logical, if \code{TRUE} then all logical and 2-level
-factor variables}
+\item{cram}{An optional character vector of column names or a logical; if
+\code{TRUE} then all logical and 2-level factor variables will report both
+levels}
 }
 \value{
 A docx object
