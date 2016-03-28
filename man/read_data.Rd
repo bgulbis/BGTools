@@ -4,7 +4,7 @@
 \alias{read_data}
 \title{Read and join data from multiple csv files}
 \usage{
-read_data(data.dir, file.name)
+read_data(data.dir, file.name, base = FALSE, check.distinct = TRUE)
 }
 \arguments{
 \item{data.dir}{A character string with the name of the directory containing
@@ -12,20 +12,25 @@ the data files}
 
 \item{file.name}{A character string with name of data file or pattern to
 match}
+
+\item{base}{An optional logical, if \code{TRUE} then the base function
+\code{\link{read.csv}} will be used}
+
+\item{check.distinct}{An optional logical, calls
+\code{\link[dplyr]{distinct}} on the imported data if \code{TRUE}}
 }
 \value{
 A data frame
 }
 \description{
 \code{read_data} takes a directory and file name and reads in all matching
-csv files and binds them together into a data frame using the base function
-\code{\link{read.csv}}.
+csv files and binds them together into a data frame
 }
 \details{
 This function takes a directory and file name and reads in all matching csv
 files and binds them together into a data frame.
 }
 \seealso{
-\code{\link{read.csv}}
+\code{\link{read.csv}} \code{\link[readr]{read_csv}}
 }
 

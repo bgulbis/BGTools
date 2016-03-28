@@ -130,43 +130,62 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #' \code{result_table} make a table with results to be inserted into Microsoft
 #' Word
 #'
-#' This function takes a data frame and converts it to a FlexTable. The
-#' FlexTable is then added to the docx object which is returned. The docx object
-#' can then be written to a Microsoft Word document.
+#' This function takes a data frame and converts it to a FlexTable. If mydoc is
+#' a docx object, then the FlexTable is added to the docx object which is
+#' returned. The docx object can then be written to a Microsoft Word document.
 #'
-#' @param mydoc A docx object
+#' If mydoc is the string "html", then the FlexTable is converted to HTML. If
+#' mydoc is the string "table", then the FlexTable itself is returned.
+#'
+#' @param mydoc Either a docx object, or string as "html" or "table"
 #' @param test A data frame
 #' @param table.title A character string
 #' @param group An optional character string indicating the name of the column
 #'   to group on; defaults to "group", set group to NULL to remove grouping
+#' @param cram An optional character vector of column names or a logical; if
+#'   \code{TRUE} then all logical and 2-level factor variables will report both
+#'   levels
 #'
 #' @return A docx object
 #'
 #' @seealso \code{\link[ReporteRs]{FlexTable}}
 #'
 #' @export
-result_table <- function(mydoc, test, table.title, group = "group") {
+result_table <- function(mydoc, test, table.title, group = "group",
+                         cram = NULL) {
     # determine which variables are continous
     cont <- purrr::keep(test, is.numeric)
-    contVars <- names(cont)
+    cont.vars <- names(cont)
+
+    cram.vars <- ""
 
     # determine which variables are logical or factors with only two levels
-    cram <- purrr::keep(test, is.logical)
-    cramVars <- names(cram)
+    if (!is.null(cram)) {
+        if (is.character(cram)) {
+            cram.vars <- cram
+        } else if (cram == TRUE) {
+            cram.vars <- purrr::keep(test, is.logical)
+            cram.vars <- names(cram.vars)
 
-    cramF <- purrr::keep(test, is.factor)
-    cramF <- purrr::keep(cramF, ~ length(levels(.x)) == 2)
-    cramVars <- c(cramVars, names(cramF))
-
-    not.nrmlVars <- ""
-
-    # if there are continuous variables, perform normality testing
-    if (length(cont) > 0) {
-        nrml <- normal_test(cont)
-
-        not.nrml <- dplyr::filter_(nrml, .dots = list(~p.value < 0.05))
-        not.nrmlVars <- not.nrml$data.name
+            cram.factor <- purrr::keep(test, is.factor)
+            cram.factor <- purrr::keep(cram.factor, ~ length(levels(.x)) == 2)
+            cram.vars <- c(cram.vars, names(cram.factor))
+        }
     }
+
+    # not.nrml.vars <- ""
+    #
+    # if (normal == "auto") {
+    #     # if there are continuous variables, perform normality testing
+    #     if (length(cont) > 0) {
+    #         nrml <- normal_test(cont)
+    #
+    #         not.nrml <- dplyr::filter_(nrml, .dots = list(~p.value < 0.05))
+    #         not.nrml.vars <- not.nrml$data.name
+    #     }
+    # } else if (normal == "medians") {
+    #     not.nrml.vars <- cont.vars
+    # }
 
     # create tableone, use print to make a data frame
     if (is.null(group)) {
@@ -174,21 +193,33 @@ result_table <- function(mydoc, test, table.title, group = "group") {
     } else {
         tab <- create_tableone(test, group)
     }
-    tab1 <- print(tab, printToggle = FALSE, nonnormal = not.nrmlVars,
-                  cramVars = cramVars)
 
-    mydoc <- ReporteRs::addParagraph(mydoc, "")
-
-    # add title before table, will output as "Table X: Title"
-    mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
+    tab.cat <- print(tab$CatTable, printToggle = FALSE, cramVars = cram.vars)
+    tab.mean <- print(tab$ContTable, printToggle = FALSE)
+    tab.median <- print(tab$ContTable, printToggle = FALSE, nonnormal = cont.vars)
+    tab.join <- rbind(tab.cat, tab.mean, tab.median)
 
     # get the FlexTable object
-    mytable <- make_flextable(tab1)
+    mytable <- make_flextable(tab.join)
 
-    # add the FlexTable to docx object and return
-    mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
+    # if mydoc is docx object, insert FlexTable into docx object; if a string
+    # "html" then return the table as HTML, otherwise return the FlexTable
+    # object
+    if (class(mydoc) == "docx") {
+        mydoc <- ReporteRs::addParagraph(mydoc, "")
 
-    return(mydoc)
+        # add title before table, will output as "Table X: Title"
+        mydoc <- ReporteRs::addTitle(mydoc, table.title, level = 3)
+
+        # add the FlexTable to docx object and return
+        mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
+    } else if (mydoc == "html") {
+        mydoc <- ReporteRs::as.html(mytable)
+    } else {
+        return(mytable)
+    }
+
+    mydoc
 }
 
 # make a FlexTable

@@ -3,8 +3,7 @@
 #' Read and join data from multiple csv files
 #'
 #' \code{read_data} takes a directory and file name and reads in all matching
-#' csv files and binds them together into a data frame using the base function
-#' \code{\link{read.csv}}.
+#' csv files and binds them together into a data frame
 #'
 #' This function takes a directory and file name and reads in all matching csv
 #' files and binds them together into a data frame.
@@ -13,21 +12,35 @@
 #'   the data files
 #' @param file.name A character string with name of data file or pattern to
 #'   match
+#' @param base An optional logical, if \code{TRUE} then the base function
+#'   \code{\link{read.csv}} will be used
+#' @param check.distinct An optional logical, calls
+#'   \code{\link[dplyr]{distinct}} on the imported data if \code{TRUE}
 #'
 #' @return A data frame
 #'
-#' @seealso \code{\link{read.csv}}
+#' @seealso \code{\link{read.csv}} \code{\link[readr]{read_csv}}
 #'
 #' @export
-read_data <- function(data.dir, file.name) {
+read_data <- function(data.dir, file.name, base = FALSE,
+                      check.distinct = TRUE) {
     # get list of files is specified directory and matching file name
     raw <- list.files(data.dir, pattern = file.name, full.names = TRUE)
     # loop through all matching files and read in to list take list of files and
     # bind them together into a data frame
-    raw <- purrr::map_df(raw, read.csv, colClasses = "character")
+    if (base == FALSE) {
+        raw <- purrr::map_df(raw, readr::read_csv)
+    } else {
+        raw <- purrr::map_df(raw, read.csv, colClasses = "character")
+    }
 
-    # remove any duplicate rows
-    raw <- dplyr::distinct_(raw)
+    # indicator to remove duplicates; defaults to TRUE but use FALSE for faster
+    # read times
+    if (check.distinct == TRUE) {
+        raw <- dplyr::distinct_(raw)
+    }
+
+    raw
 }
 
 #' Read EDW data from csv files
@@ -41,8 +54,8 @@ read_data <- function(data.dir, file.name) {
 #'
 #' Valid options for type include: admit_dc, blood, charges, demographisc,
 #' diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
-#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, problems,
-#' procedures, radiology, surgeries, uop, vent, vitals, warfarin
+#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
+#' problems, procedures, radiology, surgeries, uop, vent, vitals, warfarin
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -58,7 +71,7 @@ read_data <- function(data.dir, file.name) {
 #'
 #' @export
 read_edw_data <- function(data.dir, file.name, type = NA,
-                          check.distinct = FALSE) {
+                          check.distinct = TRUE) {
     # if type is NA, then set type to file.name
     if (is.na(type)) {
         type <- file.name
@@ -156,9 +169,9 @@ read_edw_data <- function(data.dir, file.name, type = NA,
            },
 
            home_meds = {
-               col.raw <- c(raw.names$id, "Orig Orderable Type-Flag Desc",
-                            "Order Catalog Short Description",
-                            "Order Catalog Mnemonic")
+               col.raw <- c(raw.names$id, "Order Catalog Short Description",
+                            "Order Catalog Mnemonic",
+                            "Orig Orderable Type-Flag Desc")
                col.names <- c(pt.id, "med", "order.name", "med.type")
                col.types <- readr::cols("c", "c", "c", "c")
                dots <- list(~stringr::str_to_lower(med))
@@ -246,6 +259,15 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.raw <- c(raw.names$id, "MPP (which generated order)")
                col.names <- c(pt.id, "mpp")
                col.types <- readr::cols("c", "c")
+           },
+
+           patients = {
+               col.raw <- c(raw.names$id, "Discharge Date & Time",
+                            "Age- Years (Visit)", raw.names$ev,
+                            "Person Location- Facility (Admit)")
+               col.names <- c(pt.id, "discharge.datetime", "age", "med",
+                              "facility")
+               col.types <- readr::cols("c", col_dt, "i", "c", "c")
            },
 
            problems = {
@@ -337,7 +359,8 @@ read_edw_data <- function(data.dir, file.name, type = NA,
     col.raw <- purrr::map(col.raw, as.symbol)
     read <- dplyr::rename_(read, .dots = setNames(col.raw, col.names))
 
-    # indicator to remove duplicates; defaults to FALSE for faster read times
+    # indicator to remove duplicates; defaults to TRUE but use FALSE for faster
+    # read times with large data sets
     if (check.distinct == TRUE) {
         read <- dplyr::distinct_(read)
     }

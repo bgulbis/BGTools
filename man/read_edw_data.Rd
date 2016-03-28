@@ -4,7 +4,7 @@
 \alias{read_edw_data}
 \title{Read EDW data from csv files}
 \usage{
-read_edw_data(data.dir, file.name, type = NA, check.distinct = FALSE)
+read_edw_data(data.dir, file.name, type = NA, check.distinct = TRUE)
 }
 \arguments{
 \item{data.dir}{A character string with the name of the directory containing
@@ -32,8 +32,8 @@ files and binds them together into a data frame using
 
 Valid options for type include: admit_dc, blood, charges, demographisc,
 diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
-measures, meds_continuous, meds_sched, meds_sched_freq, mpp, problems,
-procedures, radiology, surgeries, uop, vent, vitals, warfarin
+measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
+problems, procedures, radiology, surgeries, uop, vent, vitals, warfarin
 }
 \seealso{
 \code{\link[readr]{read_csv}}
