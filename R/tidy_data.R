@@ -20,7 +20,12 @@ tidy_data <- function(type, ...) {
 
     # call the desired tidy function based on type
     if (type == "diagnosis") {
-        y <- tidy_diagnosis(x$ref.data, x$pt.data, x$patients)
+        # pass patients if included
+        if ("patients" %in% names(x)) {
+            y <- tidy_diagnosis(x$ref.data, x$pt.data, x$patients)
+        } else {
+            y <- tidy_diagnosis(x$ref.data, x$pt.data)
+        }
     } else if (type == "meds_outpt") {
         # need to pass options for class and home if included
         if ("home" %in% names(x)) {
@@ -56,12 +61,12 @@ fill_false <- function(y) {
 #'
 #' @param ref.data A data frame with the desired diagnosis codes
 #' @param pt.data A data frame with all patient diagnosis codes
-#' @param patients A data frame with a column pie.id including all patients in
-#'   study
+#' @param patients An optional data frame with a column pie.id including all
+#'   patients in study
 #'
 #' @return A data frame
 #'
-tidy_diagnosis <- function(ref.data, pt.data, patients) {
+tidy_diagnosis <- function(ref.data, pt.data, patients = NULL) {
     # convert any CCS codes to ICD9
     lookup.codes <- icd9_lookup(ref.data)
     lookup.codes <- dplyr::ungroup(lookup.codes)
@@ -90,10 +95,12 @@ tidy_diagnosis <- function(ref.data, pt.data, patients) {
 
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
-    x <- dplyr::semi_join(x, patients, by = "pie.id")
-    x <- dplyr::mutate_each_(x, funs(fill_false), list(quote(-pie.id)))
+    if (!is.null(patients)) {
+        x <- dplyr::full_join(x, patients, by = "pie.id")
+        x <- dplyr::mutate_each_(x, funs(fill_false), list(quote(-pie.id)))
+    }
 
-    return(x)
+    x
 }
 
 #' Tidy outpatient medications
