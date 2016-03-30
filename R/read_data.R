@@ -52,7 +52,7 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' files and binds them together into a data frame using
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
-#' Valid options for type include: admit_dc, blood, charges, demographisc,
+#' Valid options for type include: admit_dc, blood, charges, demographics,
 #' diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
 #' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
 #' problems, procedures, radiology, surgeries, uop, vent_settings, vent_start,
