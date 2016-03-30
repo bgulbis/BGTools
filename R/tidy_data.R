@@ -6,7 +6,7 @@
 #'
 #' This function calls the underlying tidy function based on the value passed to
 #' the type parameter and returns the tidy data frame. Valid options for type
-#' are: diagnosis, meds_cont, meds_outpt, meds_sched.
+#' are: diagnosis, locations, meds_cont, meds_outpt, meds_sched.
 #'
 #' @param type A character indicating what type of data is being tidied
 #' @param ... parameters to pass on to the underlying tidy function
@@ -32,6 +32,8 @@ tidy_data <- function(type, ...) {
         y <- tidy_meds_cont(x$ref.data, x$cont.data, x$sched.data, x$patients)
     } else if (type == "meds_sched") {
         y <- tidy_meds_sched(x$ref.data, x$sched.data, x$patients)
+    } else if (type == "locations") {
+        y <- tidy_locations(x$unit.data)
     } else {
         y <- "Invalid type"
     }
@@ -264,3 +266,68 @@ tidy_meds_sched <- function(ref.data, sched.data, patients) {
     return(x)
 }
 
+# function used to compare dates; won't drop POSIXct type
+compare_dates <- function(desired, backup) {
+    if (is.na(desired)) {
+        backup
+    } else {
+        desired
+    }
+}
+
+
+#' Tidy locations
+#'
+#' \code{tidy_locations} tidy hospital location data
+#'
+#' This function takes a data frame with hospital location history and produces
+#' a tidy version with unit arrival and departure data. It accounts for
+#' incorrect departure time from raw EDW data by calculating the departure time
+#' using the arrival time of the next unit (unless it was the patient's last
+#' unit during the hospitalization). It also combines multiple rows of data when
+#' the patient did not actually leave that unit. The data should be read in by
+#' \code{\link[BGTools]{read_edw_data}}.
+#'
+#' @param unit.data A data frame
+#'
+#' @return A data frame
+#'
+tidy_locations <- function(unit.data) {
+    unit.data <- dplyr::group_by_(unit.data, "pie.id")
+    unit.data <- dplyr::arrange_(unit.data, "arrive.datetime")
+
+    # determine if they went to a different unit, then make a count of different
+    # units
+    dots <- list(~ifelse(is.na(unit.to) | is.na(dplyr::lag(unit.to)) |
+                             unit.to != dplyr::lag(unit.to), TRUE, FALSE),
+                 ~cumsum(diff.unit))
+    nm <- list("diff.unit", "unit.count")
+    unit.data <- dplyr::mutate_(unit.data, .dots = setNames(dots, nm))
+
+    # use the unit.count to group multiple rows of the same unit together and
+    # combine data
+    dots <- list("pie.id", "unit.count")
+    unit.data <- dplyr::group_by_(unit.data, .dots = dots)
+
+    dots <- list(~dplyr::first(unit.to), ~dplyr::first(arrive.datetime),
+                 ~dplyr::last(depart.datetime))
+    nm <- list("location", "arrive.datetime", "depart.recorded")
+    unit.data <- dplyr::summarize_(unit.data, .dots = setNames(dots, nm))
+
+    # use the arrival time for the next unit to calculate a depart time
+    dots <- list(~dplyr::lead(arrive.datetime))
+    nm <- "depart.calculated"
+    unit.data <- dplyr::mutate_(unit.data, .dots = setNames(dots, nm))
+
+    unit.data <- dplyr::rowwise(unit.data)
+
+    dots <- list(~compare_dates(depart.calculated, depart.recorded),
+                 ~difftime(depart.datetime, arrive.datetime, units = "days"))
+    nm <- list("depart.datetime", "unit.length.stay")
+    unit.data <- dplyr::mutate_(unit.data, .dots = setNames(dots, nm))
+
+    dots <- list(quote(-depart.recorded), quote(-depart.calculated))
+    unit.data <- dplyr::select_(unit.data, .dots = dots)
+
+    unit.data <- dplyr::ungroup(unit.data)
+}
