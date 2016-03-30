@@ -52,8 +52,8 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' files and binds them together into a data frame using
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
-#' Valid options for type include: admit_dc, blood, charges, demographics,
-#' diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
+#' Valid options for type include: blood, charges, demographics, diagnosis,
+#' encounters, events, facility, home_meds, icu_assess, id, labs, locations,
 #' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
 #' problems, procedures, radiology, surgeries, uop, vent_settings, vent_start,
 #' vitals, warfarin
@@ -98,14 +98,6 @@ read_edw_data <- function(data.dir, file.name, type = NA,
     col.types <- readr::cols_only("c", col_dt, "c", "c")
 
     switch(type,
-           admit_dc = {
-               col.raw <- c(raw.names$id, "Arrival Date & Time",
-                            "Admit Date & Time", "Discharge Date & Time")
-               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
-                       "discharge.datetime")
-               col.types <- readr::cols("c", col_dt, col_dt, col_dt)
-           },
-
            blood = {
                # use default columns
                col.names <- c(pt.id, "blood.datetime", "blood.prod",
@@ -167,6 +159,19 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "event.datetime", "event", "event.result")
                dots <- list(~stringr::str_to_lower(event))
                nm <- "event"
+           },
+
+           facility = {
+               col.raw <- c(raw.names$id, "Arrival Date & Time",
+                            "Admit Date & Time", "Discharge Date & Time",
+                            "Encounter Type", "Admit Source", "Admit Type",
+                            "Person Location- Facility (Admit)",
+                            "Person Location- Nurse Unit (Admit)")
+               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
+                              "discharge.datetime", "visit.type", "admit.source",
+                              "admit.type", "facility", "nurse.unit.admit")
+               col.types <- readr::cols("c", col_dt, col_dt, col_dt, "c", "c",
+                                        "c", "c", "c")
            },
 
            home_meds = {
@@ -410,7 +415,7 @@ assign_blood_prod <- function(event) {
 
 #' Read in RDS files
 #'
-#' \code{read_rds} reads in all RDS files from a directory
+#' \code{get_rds} reads in all RDS files from a directory
 #'
 #' This function reads in all RDS files in a given directory and saves them as
 #' objects in the Global Environment.
@@ -424,7 +429,7 @@ assign_blood_prod <- function(event) {
 #' @seealso \code{\link{readRDS}}
 #'
 #' @export
-read_rds <- function(data.dir, file.ext = ".Rds") {
+get_rds <- function(data.dir, file.ext = ".Rds") {
     # if (!exists(var.name)) {
     #     readRDS(paste(data.dir, file.name, sep = "/"))
     # } else {
