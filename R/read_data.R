@@ -55,7 +55,8 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' Valid options for type include: admit_dc, blood, charges, demographisc,
 #' diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
 #' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
-#' problems, procedures, radiology, surgeries, uop, vent, vitals, warfarin
+#' problems, procedures, radiology, surgeries, uop, vent_settings, vent_start,
+#' vitals, warfarin
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -324,9 +325,18 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                nm <- "uop.event"
            },
 
-           vent = {
+           vent_settings = {
                # use default columns
                col.names <- c(pt.id, "vent.datetime", "vent.event", "vent.result")
+               dots <- list(~stringr::str_to_lower(vent.event))
+               nm <- "vent.event"
+           },
+
+           vent_start = {
+               col.raw <- c(raw.names$id, "Clinical Event Date Result",
+                            raw.names$ev)
+               col.names <- c(pt.id, "vent.datetime", "vent.event")
+               col.types <- readr::cols("c", col_dt, "c")
                dots <- list(~stringr::str_to_lower(vent.event))
                nm <- "vent.event"
            },
