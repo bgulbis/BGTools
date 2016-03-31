@@ -4,15 +4,12 @@
 \alias{tidy_meds_sched}
 \title{Tidy scheduled medications}
 \usage{
-tidy_meds_sched(ref.data, sched.data, patients)
+tidy_meds_sched(raw.data, ref.data)
 }
 \arguments{
+\item{raw.data}{A data frame with all scheduled medications}
+
 \item{ref.data}{A data frame with three columns: name, type, and group}
-
-\item{sched.data}{A data frame with all scheduled medications}
-
-\item{patients}{A data frame with a column pie.id including all patients in
-study}
 }
 \value{
 A data frame

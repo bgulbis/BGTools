@@ -4,15 +4,15 @@
 \alias{tidy_diagnosis}
 \title{Tidy diagnosis codes}
 \usage{
-tidy_diagnosis(ref.data, pt.data, patients)
+tidy_diagnosis(raw.data, ref.data, patients = NULL)
 }
 \arguments{
+\item{raw.data}{A data frame with all patient diagnosis codes}
+
 \item{ref.data}{A data frame with the desired diagnosis codes}
 
-\item{pt.data}{A data frame with all patient diagnosis codes}
-
-\item{patients}{A data frame with a column pie.id including all patients in
-study}
+\item{patients}{An optional data frame with a column pie.id including all
+patients in study}
 }
 \value{
 A data frame

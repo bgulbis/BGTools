@@ -4,10 +4,10 @@
 \alias{tidy_locations}
 \title{Tidy locations}
 \usage{
-tidy_locations(unit.data)
+tidy_locations(raw.data)
 }
 \arguments{
-\item{unit.data}{A data frame}
+\item{raw.data}{A data frame with location data}
 }
 \value{
 A data frame

@@ -4,9 +4,11 @@
 \alias{tidy_data}
 \title{Tidy data}
 \usage{
-tidy_data(type, ...)
+tidy_data(raw.data, type, ...)
 }
 \arguments{
+\item{raw.data}{A data frame with the data to be tidied}
+
 \item{type}{A character indicating what type of data is being tidied}
 
 \item{...}{parameters to pass on to the underlying tidy function}
