@@ -301,7 +301,8 @@ tidy_locations <- function(raw.data) {
     tidy <- dplyr::rowwise(tidy)
 
     dots <- list(~compare_dates(depart.calculated, depart.recorded),
-                 ~difftime(depart.datetime, arrive.datetime, units = "days"))
+                 ~as.numeric(difftime(depart.datetime, arrive.datetime,
+                                      units = "days")))
     nm <- list("depart.datetime", "unit.length.stay")
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
