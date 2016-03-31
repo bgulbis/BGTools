@@ -16,14 +16,12 @@
 #'
 #' @export
 tidy_data <- function(raw.data, type, ...) {
-    # get list of parameters from ellipsis
-    x <- list(...)
     home <- TRUE
     patients <- NULL
-    if ("home" %in% names(x)) home <- x$home
-    if ("patients" %in% names(x)) patients <- x$patients
-    if ("ref.data" %in% names(x)) ref.data <- x$ref.data
-    if ("sched.data" %in% names(x)) sched.data <- x$sched.data
+
+    # get list of parameters from ellipsis
+    x <- list(...)
+    list2env(x, environment())
 
     # call the desired tidy function based on type
     switch(type,
