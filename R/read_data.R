@@ -270,7 +270,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
            patients = {
                col.raw <- c(raw.names$id, "Discharge Date & Time",
                             "Age- Years (Visit)",
-                            "Person Location- Facility (Admit)",
+                            "Person Location- Facility (Curr)",
                             "Encounter Type")
                col.names <- c(pt.id, "discharge.datetime", "age", "facility",
                               "visit.type")
