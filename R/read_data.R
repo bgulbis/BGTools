@@ -231,8 +231,9 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "med.datetime", "med", "med.rate",
                               "med.rate.units", "event.id")
                col.types <- readr::cols("c", col_dt, "c", "d", "c", "c")
-               dots <- list(~stringr::str_to_lower(med))
-               nm <- "med"
+               dots <- list(~stringr::str_to_lower(med),
+                            ~ifelse(med.rate.units == "", NA, med.rate.units))
+               nm <- list("med", "med.rate.units")
            },
 
            meds_sched = {
