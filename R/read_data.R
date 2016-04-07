@@ -214,6 +214,9 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "arrive.datetime", "depart.datetime",
                               "unit.to", "unit.from")
                col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
+               dots <- list(~ifelse(unit.to == "", NA, unit.to),
+                            ~ifelse(unit.from == "", NA, unit.from))
+               nm <- list("unit.to", "unit.from")
            },
 
            measures = {
