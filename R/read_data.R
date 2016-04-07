@@ -143,7 +143,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
            encounters = {
                col.raw <- c("Person ID", "Admit Date & Time", raw.names$id,
                             "Encounter Type",
-                            "Person Location - Facility (Admit)",
+                            "Person Location- Facility (Curr)",
                             "Discharge Disposition")
                col.names <- c("person.id", "admit.datetime", pt.id,
                               "visit.type", "facility", "disposition")
@@ -165,7 +165,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.raw <- c(raw.names$id, "Arrival Date & Time",
                             "Admit Date & Time", "Discharge Date & Time",
                             "Encounter Type", "Admit Source", "Admit Type",
-                            "Person Location- Facility (Admit)",
+                            "Person Location- Facility (Curr)",
                             "Person Location- Nurse Unit (Admit)")
                col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
                               "discharge.datetime", "visit.type", "admit.source",
