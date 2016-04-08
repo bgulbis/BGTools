@@ -440,7 +440,7 @@ get_rds <- function(data.dir, file.ext = ".Rds") {
     #     get(var.name)
     # }
     raw <- list.files(data.dir, file.ext, full.names = TRUE)
-    nm <- list.files(analysis.dir, file.ext)
+    nm <- list.files(data.dir, file.ext)
     nm <- stringr::str_replace_all(nm, file.ext, "")
     files <- purrr::map(raw, readRDS)
     names(files) <- nm
