@@ -33,8 +33,8 @@ files and binds them together into a data frame using
 Valid options for type include: blood, charges, demographics, diagnosis,
 encounters, events, facility, home_meds, icu_assess, id, labs, locations,
 measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
-problems, procedures, radiology, surgeries, uop, vent_settings, vent_start,
-vitals, warfarin
+problems, procedures, radiology, services, surgeries, uop, vent_settings,
+vent_start, vitals, warfarin
 }
 \seealso{
 \code{\link[readr]{read_csv}}

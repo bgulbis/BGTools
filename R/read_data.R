@@ -55,8 +55,8 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' Valid options for type include: blood, charges, demographics, diagnosis,
 #' encounters, events, facility, home_meds, icu_assess, id, labs, locations,
 #' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
-#' problems, procedures, radiology, surgeries, uop, vent_settings, vent_start,
-#' vitals, warfarin
+#' problems, procedures, radiology, services, surgeries, uop, vent_settings,
+#' vent_start, vitals, warfarin
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -309,6 +309,19 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.raw <- c(raw.names$id, raw.names$dt, raw.names$ev)
                col.names <- c(pt.id, "rad.datetime", "rad.type")
                col.types <- readr::cols("c", col_dt, "c")
+           },
+
+           services = {
+               col.raw <- c(raw.names$id, "Medical Service Begin Date & Time",
+                            "Medical Service End Date & Time",
+                            "Medical Service",
+                            "Previous Medical Service")
+               col.names <- c(pt.id, "start.datetime", "end.datetime",
+                              "service", "service.from")
+               col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
+               dots <- list(~ifelse(service == "", NA, service),
+                            ~ifelse(service.from == "", NA, service.from))
+               nm <- list("service", "service.from")
            },
 
            surgeries = {
