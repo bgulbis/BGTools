@@ -6,7 +6,7 @@
 #'
 #' This function calls the underlying tidy function based on the value passed to
 #' the type parameter and returns the tidy data frame. Valid options for type
-#' are: diagnosis, locations, meds_cont, meds_outpt, meds_sched.
+#' are: diagnosis, locations, meds_cont, meds_outpt, meds_sched, services.
 #'
 #' @param raw.data A data frame with the data to be tidied
 #' @param type A character indicating what type of data is being tidied
@@ -30,6 +30,7 @@ tidy_data <- function(raw.data, type, ...) {
            meds_cont = tidy_meds_cont(raw.data, ref.data, sched.data),
            meds_outpt = tidy_meds_outpt(raw.data, ref.data, patients, home),
            meds_sched = tidy_meds_sched(raw.data, ref.data),
+           services = tidy_services(raw.data),
            stop("Invalid type")
     )
 }
@@ -307,6 +308,63 @@ tidy_locations <- function(raw.data) {
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
     dots <- list(quote(-depart.recorded), quote(-depart.calculated))
+    tidy <- dplyr::select_(tidy, .dots = dots)
+
+    tidy <- dplyr::ungroup(tidy)
+}
+
+#' Tidy services
+#'
+#' \code{tidy_services} tidy medical service history data
+#'
+#' This function takes a data frame with medical service history and produces a
+#' tidy version with service begin and end dates/times. It accounts for
+#' incorrect end times from raw EDW data by calculating the end time using the
+#' start time of the next service (unless it was the patient's last service
+#' during the hospitalization). It also combines multiple rows of data when the
+#' patient did not actually leave that service. The data should be read in by
+#' \code{\link[BGTools]{read_edw_data}}.
+#'
+#' @param raw.data A data frame with service data
+#'
+#' @return A data frame
+#'
+tidy_services <- function(raw.data) {
+    tidy <- dplyr::group_by_(raw.data, "pie.id")
+    tidy <- dplyr::arrange_(tidy, "start.datetime")
+
+    # determine if they went to a different service, then make a count of
+    # different services
+    dots <- list(~ifelse(is.na(service) | is.na(dplyr::lag(service)) |
+                             service != dplyr::lag(service), TRUE, FALSE),
+                 ~cumsum(diff.service))
+    nm <- list("diff.service", "service.count")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    # use the service.count to group multiple rows of the same service together
+    # and combine data
+    dots <- list("pie.id", "service.count")
+    tidy <- dplyr::group_by_(tidy, .dots = dots)
+
+    dots <- list(~dplyr::first(service), ~dplyr::first(start.datetime),
+                 ~dplyr::last(end.datetime))
+    nm <- list("service", "start.datetime", "end.recorded")
+    tidy <- dplyr::summarize_(tidy, .dots = setNames(dots, nm))
+
+    # use the start time for the next service to calculate an end time
+    dots <- list(~dplyr::lead(start.datetime))
+    nm <- "end.calculated"
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::rowwise(tidy)
+
+    dots <- list(~compare_dates(end.calculated, end.recorded),
+                 ~as.numeric(difftime(end.datetime, start.datetime,
+                                      units = "days")))
+    nm <- list("end.datetime", "service.duration")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    dots <- list(quote(-end.recorded), quote(-end.calculated))
     tidy <- dplyr::select_(tidy, .dots = dots)
 
     tidy <- dplyr::ungroup(tidy)
