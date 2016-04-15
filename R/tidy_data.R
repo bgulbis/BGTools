@@ -186,7 +186,7 @@ tidy_meds_outpt <- function(raw.data, ref.data, patients = NULL, home = TRUE) {
 #'
 #' @return A data frame
 #'
-tidy_meds_cont <- function(raw.data, ref.data, sched.data, patients) {
+tidy_meds_cont <- function(raw.data, ref.data, sched.data) {
     # filter to tidy only continuous meds
     ref.data <- dplyr::filter_(ref.data, .dots = list(~group == "cont"))
 
