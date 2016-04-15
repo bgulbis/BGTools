@@ -4,15 +4,15 @@
 \alias{tidy_meds_outpt}
 \title{Tidy outpatient medications}
 \usage{
-tidy_meds_outpt(ref.data, pt.data, patients, home = TRUE)
+tidy_meds_outpt(raw.data, ref.data, patients = NULL, home = TRUE)
 }
 \arguments{
+\item{raw.data}{A data frame with all outpatient medications}
+
 \item{ref.data}{A data frame with two columns, name and type}
 
-\item{pt.data}{A data frame with all outpatient medications}
-
-\item{patients}{A data frame with a column pie.id including all patients in
-study}
+\item{patients}{An optinoal data frame with a column pie.id including all
+patients in study}
 
 \item{home}{optional logical indicating to look for home medications if TRUE
 or discharge medications if FALSE}

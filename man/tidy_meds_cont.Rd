@@ -4,17 +4,14 @@
 \alias{tidy_meds_cont}
 \title{Tidy continuous medications}
 \usage{
-tidy_meds_cont(ref.data, cont.data, sched.data, patients)
+tidy_meds_cont(raw.data, ref.data, sched.data)
 }
 \arguments{
+\item{raw.data}{A data frame with all medications}
+
 \item{ref.data}{A data frame with three columns: name, type, and group}
 
-\item{cont.data}{A data frame with all outpatient medications}
-
-\item{sched.data}{A data frame with all outpatient medications}
-
-\item{patients}{A data frame with a column pie.id including all patients in
-study}
+\item{sched.data}{A data frame with all intermittent medications}
 }
 \value{
 A data frame

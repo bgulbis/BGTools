@@ -4,9 +4,11 @@
 \alias{tidy_data}
 \title{Tidy data}
 \usage{
-tidy_data(type, ...)
+tidy_data(raw.data, type, ...)
 }
 \arguments{
+\item{raw.data}{A data frame with the data to be tidied}
+
 \item{type}{A character indicating what type of data is being tidied}
 
 \item{...}{parameters to pass on to the underlying tidy function}
@@ -20,6 +22,6 @@ A data frame
 \details{
 This function calls the underlying tidy function based on the value passed to
 the type parameter and returns the tidy data frame. Valid options for type
-are: diagnosis, meds_cont, meds_outpt, meds_sched.
+are: diagnosis, locations, meds_cont, meds_outpt, meds_sched, services.
 }
 

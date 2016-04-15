@@ -52,10 +52,11 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' files and binds them together into a data frame using
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
-#' Valid options for type include: admit_dc, blood, charges, demographisc,
-#' diagnosis, encounters, events, home_meds, icu_assess, id, labs, locations,
+#' Valid options for type include: blood, charges, demographics, diagnosis,
+#' encounters, events, facility, home_meds, icu_assess, id, labs, locations,
 #' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
-#' problems, procedures, radiology, surgeries, uop, vent, vitals, warfarin
+#' problems, procedures, radiology, services, surgeries, uop, vent_settings,
+#' vent_start, vitals, warfarin
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -97,14 +98,6 @@ read_edw_data <- function(data.dir, file.name, type = NA,
     col.types <- readr::cols_only("c", col_dt, "c", "c")
 
     switch(type,
-           admit_dc = {
-               col.raw <- c(raw.names$id, "Arrival Date & Time",
-                            "Admit Date & Time", "Discharge Date & Time")
-               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
-                       "discharge.datetime")
-               col.types <- readr::cols("c", col_dt, col_dt, col_dt)
-           },
-
            blood = {
                # use default columns
                col.names <- c(pt.id, "blood.datetime", "blood.prod",
@@ -150,7 +143,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
            encounters = {
                col.raw <- c("Person ID", "Admit Date & Time", raw.names$id,
                             "Encounter Type",
-                            "Person Location - Facility (Admit)",
+                            "Person Location- Facility (Curr)",
                             "Discharge Disposition")
                col.names <- c("person.id", "admit.datetime", pt.id,
                               "visit.type", "facility", "disposition")
@@ -166,6 +159,19 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "event.datetime", "event", "event.result")
                dots <- list(~stringr::str_to_lower(event))
                nm <- "event"
+           },
+
+           facility = {
+               col.raw <- c(raw.names$id, "Arrival Date & Time",
+                            "Admit Date & Time", "Discharge Date & Time",
+                            "Encounter Type", "Admit Source", "Admit Type",
+                            "Person Location- Facility (Curr)",
+                            "Person Location- Nurse Unit (Admit)")
+               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
+                              "discharge.datetime", "visit.type", "admit.source",
+                              "admit.type", "facility", "nurse.unit.admit")
+               col.types <- readr::cols("c", col_dt, col_dt, col_dt, "c", "c",
+                                        "c", "c", "c")
            },
 
            home_meds = {
@@ -208,6 +214,9 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "arrive.datetime", "depart.datetime",
                               "unit.to", "unit.from")
                col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
+               dots <- list(~ifelse(unit.to == "", NA, unit.to),
+                            ~ifelse(unit.from == "", NA, unit.from))
+               nm <- list("unit.to", "unit.from")
            },
 
            measures = {
@@ -225,8 +234,9 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "med.datetime", "med", "med.rate",
                               "med.rate.units", "event.id")
                col.types <- readr::cols("c", col_dt, "c", "d", "c", "c")
-               dots <- list(~stringr::str_to_lower(med))
-               nm <- "med"
+               dots <- list(~stringr::str_to_lower(med),
+                            ~ifelse(med.rate.units == "", NA, med.rate.units))
+               nm <- list("med", "med.rate.units")
            },
 
            meds_sched = {
@@ -263,10 +273,11 @@ read_edw_data <- function(data.dir, file.name, type = NA,
 
            patients = {
                col.raw <- c(raw.names$id, "Discharge Date & Time",
-                            "Age- Years (Visit)", raw.names$ev,
-                            "Person Location- Facility (Admit)")
-               col.names <- c(pt.id, "discharge.datetime", "age", "med",
-                              "facility")
+                            "Age- Years (Visit)",
+                            "Person Location- Facility (Curr)",
+                            "Encounter Type")
+               col.names <- c(pt.id, "discharge.datetime", "age", "facility",
+                              "visit.type")
                col.types <- readr::cols("c", col_dt, "i", "c", "c")
            },
 
@@ -300,6 +311,19 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.types <- readr::cols("c", col_dt, "c")
            },
 
+           services = {
+               col.raw <- c(raw.names$id, "Medical Service Begin Date & Time",
+                            "Medical Service End Date & Time",
+                            "Medical Service",
+                            "Previous Medical Service")
+               col.names <- c(pt.id, "start.datetime", "end.datetime",
+                              "service", "service.from")
+               col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
+               dots <- list(~ifelse(service == "", NA, service),
+                            ~ifelse(service.from == "", NA, service.from))
+               nm <- list("service", "service.from")
+           },
+
            surgeries = {
                col.raw <- c(raw.names$id, "Priority", "ASA Class Description",
                             "Add On Indicator", "Procedure",
@@ -323,9 +347,18 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                nm <- "uop.event"
            },
 
-           vent = {
+           vent_settings = {
                # use default columns
                col.names <- c(pt.id, "vent.datetime", "vent.event", "vent.result")
+               dots <- list(~stringr::str_to_lower(vent.event))
+               nm <- "vent.event"
+           },
+
+           vent_start = {
+               col.raw <- c(raw.names$id, "Clinical Event Date Result",
+                            raw.names$ev)
+               col.names <- c(pt.id, "vent.datetime", "vent.event")
+               col.types <- readr::cols("c", col_dt, "c")
                dots <- list(~stringr::str_to_lower(vent.event))
                nm <- "vent.event"
            },
@@ -399,7 +432,7 @@ assign_blood_prod <- function(event) {
 
 #' Read in RDS files
 #'
-#' \code{read_rds} reads in all RDS files from a directory
+#' \code{get_rds} reads in all RDS files from a directory
 #'
 #' This function reads in all RDS files in a given directory and saves them as
 #' objects in the Global Environment.
@@ -413,14 +446,14 @@ assign_blood_prod <- function(event) {
 #' @seealso \code{\link{readRDS}}
 #'
 #' @export
-read_rds <- function(data.dir, file.ext = ".Rds") {
+get_rds <- function(data.dir, file.ext = ".Rds") {
     # if (!exists(var.name)) {
     #     readRDS(paste(data.dir, file.name, sep = "/"))
     # } else {
     #     get(var.name)
     # }
     raw <- list.files(data.dir, file.ext, full.names = TRUE)
-    nm <- list.files(analysis.dir, file.ext)
+    nm <- list.files(data.dir, file.ext)
     nm <- stringr::str_replace_all(nm, file.ext, "")
     files <- purrr::map(raw, readRDS)
     names(files) <- nm

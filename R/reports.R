@@ -134,12 +134,16 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #' a docx object, then the FlexTable is added to the docx object which is
 #' returned. The docx object can then be written to a Microsoft Word document.
 #'
-#' If mydoc is the string "html", then the FlexTable is converted to HTML. If
-#' mydoc is the string "table", then the FlexTable itself is returned.
+#' If mydoc is the string "html", then an HTML FlexTable is returned. If mydoc
+#' is "flextable", then the FlexTable object is returned. If mydoc is "cat",
+#' then the detailed tableone summary of the categorical variables is returned.
+#' If mydoc is "cont", then the detailed tableone summary of the continuous
+#' variables is returned.
 #'
-#' @param mydoc Either a docx object, or string as "html" or "table"
+#' @param mydoc Either a docx object, or string as "html", "flextable", "cat",
+#'   "cont", or "table"
 #' @param test A data frame
-#' @param table.title A character string
+#' @param table.title An optional character string
 #' @param group An optional character string indicating the name of the column
 #'   to group on; defaults to "group", set group to NULL to remove grouping
 #' @param cram An optional character vector of column names or a logical; if
@@ -151,7 +155,7 @@ create_tableone <- function(test, group = NULL, ident = "pie.id") {
 #' @seealso \code{\link[ReporteRs]{FlexTable}}
 #'
 #' @export
-result_table <- function(mydoc, test, table.title, group = "group",
+result_table <- function(mydoc, test, table.title = "", group = "group",
                          cram = NULL) {
     # determine which variables are continous
     cont <- purrr::keep(test, is.numeric)
@@ -215,8 +219,14 @@ result_table <- function(mydoc, test, table.title, group = "group",
         mydoc <- ReporteRs::addFlexTable(mydoc, mytable)
     } else if (mydoc == "html") {
         mydoc <- ReporteRs::as.html(mytable)
-    } else {
+    } else if (mydoc == "flextable") {
         return(mytable)
+    } else if (mydoc == "cont") {
+        return(summary(tab$ContTable))
+    } else if (mydoc == "cat") {
+        return(summary(tab$CatTable))
+    } else {
+        return(tab.join)
     }
 
     mydoc

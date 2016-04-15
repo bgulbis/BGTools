@@ -142,8 +142,8 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     # turn off scientific notation
     options(scipen = 999)
 
-    cont.data <- dplyr::group_by_(cont.data, .dots = list("pie.id", "med",
-                                                          "drip.count"))
+    dots <- list("pie.id", "med", "drip.count")
+    cont.data <- dplyr::group_by_(cont.data, .dots = dots)
 
     # get last and min non-zero rate
     nz.rate <- dplyr::filter_(cont.data, .dots = ~(med.rate > 0))
@@ -153,12 +153,15 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     nz.rate <- dplyr::summarize_(nz.rate, .dots = setNames(dots, nm))
 
     # get first and max rates and AUC
-    dots <- list(~sum(med.rate * duration, na.rm = TRUE),
+    dots <- list(~dplyr::first(rate.start),
+                 ~dplyr::last(rate.stop),
+                 ~sum(med.rate * duration, na.rm = TRUE),
                  ~dplyr::first(med.rate),
                  ~max(med.rate, na.rm = TRUE),
                  ~MESS::auc(run.time, med.rate),
                  ~dplyr::last(run.time))
-    nm <- c("cum.dose", "first.rate", "max.rate", "auc", "duration")
+    nm <- c("start.datetime", "stop.datetime", "cum.dose", "first.rate",
+            "max.rate", "auc", "duration")
     summary.data <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
 
     # join the last and min data
