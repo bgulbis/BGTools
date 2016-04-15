@@ -4,7 +4,7 @@
 \alias{tidy_meds_cont}
 \title{Tidy continuous medications}
 \usage{
-tidy_meds_cont(raw.data, ref.data, sched.data, patients)
+tidy_meds_cont(raw.data, ref.data, sched.data)
 }
 \arguments{
 \item{raw.data}{A data frame with all medications}
