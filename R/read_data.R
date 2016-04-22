@@ -53,10 +53,10 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
 #' Valid options for type include: blood, charges, demographics, diagnosis,
-#' encounters, events, facility, home_meds, icu_assess, id, labs, locations,
-#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, orders,
-#' patients, problems, procedures, radiology, services, surgeries, uop,
-#' vent_settings, vent_start, vitals, warfarin
+#' encounters, events, home_meds, icu_assess, id, labs, locations, measures,
+#' meds_continuous, meds_sched, meds_sched_freq, mpp, orders, patients,
+#' problems, procedures, radiology, services, surgeries, uop, vent_settings,
+#' vent_start, visits, vitals, warfarin
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -159,19 +159,6 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "event.datetime", "event", "event.result")
                dots <- list(~stringr::str_to_lower(event))
                nm <- "event"
-           },
-
-           facility = {
-               col.raw <- c(raw.names$id, "Arrival Date & Time",
-                            "Admit Date & Time", "Discharge Date & Time",
-                            "Encounter Type", "Admit Source", "Admit Type",
-                            "Person Location- Facility (Curr)",
-                            "Person Location- Nurse Unit (Admit)")
-               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
-                              "discharge.datetime", "visit.type", "admit.source",
-                              "admit.type", "facility", "nurse.unit.admit")
-               col.types <- readr::cols("c", col_dt, col_dt, col_dt, "c", "c",
-                                        "c", "c", "c")
            },
 
            home_meds = {
@@ -372,6 +359,19 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.types <- readr::cols("c", col_dt, "c")
                dots <- list(~stringr::str_to_lower(vent.event))
                nm <- "vent.event"
+           },
+
+           visits = {
+               col.raw <- c(raw.names$id, "Arrival Date & Time",
+                            "Admit Date & Time", "Discharge Date & Time",
+                            "Encounter Type", "Admit Source", "Admit Type",
+                            "Person Location- Facility (Curr)",
+                            "Person Location- Nurse Unit (Admit)")
+               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
+                              "discharge.datetime", "visit.type", "admit.source",
+                              "admit.type", "facility", "nurse.unit.admit")
+               col.types <- readr::cols("c", col_dt, col_dt, col_dt, "c", "c",
+                                        "c", "c", "c")
            },
 
            vitals = {
