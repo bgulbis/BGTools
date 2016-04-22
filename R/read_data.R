@@ -54,9 +54,9 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #'
 #' Valid options for type include: blood, charges, demographics, diagnosis,
 #' encounters, events, facility, home_meds, icu_assess, id, labs, locations,
-#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
-#' problems, procedures, radiology, services, surgeries, uop, vent_settings,
-#' vent_start, vitals, warfarin
+#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, orders,
+#' patients, problems, procedures, radiology, services, surgeries, uop,
+#' vent_settings, vent_start, vitals, warfarin
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -269,6 +269,17 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.raw <- c(raw.names$id, "MPP (which generated order)")
                col.names <- c(pt.id, "mpp")
                col.types <- readr::cols("c", "c")
+           },
+
+           orders = {
+               col.raw <- c(raw.names$id, "Order Date & Time",
+                            "Order Catalog Mnemonic",
+                            "Person Location- Nurse Unit (Order)",
+                            "Personnel - Order", "Personnel Position  Order",
+                            "Order Discontinue Date & Time")
+               col.names <- c(pt.id, "order.datetime", "order", "order.unit",
+                              "provider", "provider.role", "order.stop.datetime")
+               col.types <- readr::cols("c", col_dt, "c", "c", "c", "c", col_dt)
            },
 
            patients = {
