@@ -25,9 +25,9 @@
 #' @export
 icd9_lookup <- function(df, procedure = FALSE) {
     if (procedure == TRUE) {
-        data <- ccs.procedures
+        data <- ccs9.procedures
     } else {
-        data <- ccs.diagnosis
+        data <- ccs9.diagnosis
     }
 
     # find the ICD9 codes for the desired exclusions by CCS code
@@ -74,9 +74,9 @@ icd9_lookup <- function(df, procedure = FALSE) {
 #' @export
 icd9_description <- function(codes, procedure = FALSE) {
     if (procedure == TRUE) {
-        data <- ccs.procedures
+        data <- ccs9.procedures
     } else {
-        data <- ccs.diagnosis
+        data <- ccs9.diagnosis
     }
 
     # get only the desired descriptions based on ICD9 codes
