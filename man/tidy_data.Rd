@@ -22,6 +22,9 @@ A data frame
 \details{
 This function calls the underlying tidy function based on the value passed to
 the type parameter and returns the tidy data frame. Valid options for type
-are: diagnosis, locations, meds_cont, meds_outpt, meds_sched, services.
+are: diagnosis*, icd9, icd10, locations, meds_cont, meds_outpt, meds_sched,
+services.
+
+* diagnosis is deprecated, use icd9 or icd10 instead
 }
 

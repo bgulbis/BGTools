@@ -20,6 +20,8 @@ A data frame with columns: icd9.code and icd9.description
 with the corresponding description for each code
 }
 \details{
+Deprecated function, use \code{\link{icd_description}} instead.
+
 This function takes a character vector of ICD9 codes and returns a data frame
 with two columns: icd9.code and icd9.description.
 }

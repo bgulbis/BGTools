@@ -52,11 +52,13 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' files and binds them together into a data frame using
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
-#' Valid options for type include: blood, charges, demographics, diagnosis,
-#' encounters, events, facility, home_meds, icu_assess, id, labs, locations,
-#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, patients,
-#' problems, procedures, radiology, services, surgeries, uop, vent_settings,
-#' vent_start, vitals, warfarin
+#' Valid options for type include: blood, charges, demographics, diagnosis*,
+#' encounters, events, home_meds, icd9, icd10, icu_assess, id, labs, locations,
+#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, orders,
+#' patients, problems, procedures, radiology, services, surgeries, uop,
+#' vent_settings, vent_start, visits, vitals, warfarin
+#'
+#' * diagnosis option is deprecated; use icd9 or icd10 instead
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -161,19 +163,6 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                nm <- "event"
            },
 
-           facility = {
-               col.raw <- c(raw.names$id, "Arrival Date & Time",
-                            "Admit Date & Time", "Discharge Date & Time",
-                            "Encounter Type", "Admit Source", "Admit Type",
-                            "Person Location- Facility (Curr)",
-                            "Person Location- Nurse Unit (Admit)")
-               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
-                              "discharge.datetime", "visit.type", "admit.source",
-                              "admit.type", "facility", "nurse.unit.admit")
-               col.types <- readr::cols("c", col_dt, col_dt, col_dt, "c", "c",
-                                        "c", "c", "c")
-           },
-
            home_meds = {
                col.raw <- c(raw.names$id, "Order Catalog Short Description",
                             "Order Catalog Mnemonic",
@@ -182,6 +171,20 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.types <- readr::cols("c", "c", "c", "c")
                dots <- list(~stringr::str_to_lower(med))
                nm <- "med"
+           },
+
+           icd9 = {
+               col.raw <- c(raw.names$id, "ICD9 Diagnosis Code",
+                            "Diagnosis Type", "Diagnosis Code Sequence")
+               col.names <- c(pt.id, "diag.code", "diag.type", "diag.seq")
+               col.types <- readr::cols("c", "c", "c", "c")
+           },
+
+           icd10 = {
+               col.raw <- c(raw.names$id, "ICD10 Diagnosis Code",
+                            "Diagnosis Type", "Diagnosis Code Sequence")
+               col.names <- c(pt.id, "diag.code", "diag.type", "diag.seq")
+               col.types <- readr::cols("c", "c", "c", "c")
            },
 
            icu_assess = {
@@ -269,6 +272,17 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.raw <- c(raw.names$id, "MPP (which generated order)")
                col.names <- c(pt.id, "mpp")
                col.types <- readr::cols("c", "c")
+           },
+
+           orders = {
+               col.raw <- c(raw.names$id, "Order Date & Time",
+                            "Order Catalog Mnemonic",
+                            "Person Location- Nurse Unit (Order)",
+                            "Personnel - Order", "Personnel Position  Order",
+                            "Order Discontinue Date & Time")
+               col.names <- c(pt.id, "order.datetime", "order", "order.unit",
+                              "provider", "provider.role", "order.stop.datetime")
+               col.types <- readr::cols("c", col_dt, "c", "c", "c", "c", col_dt)
            },
 
            patients = {
@@ -361,6 +375,19 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.types <- readr::cols("c", col_dt, "c")
                dots <- list(~stringr::str_to_lower(vent.event))
                nm <- "vent.event"
+           },
+
+           visits = {
+               col.raw <- c(raw.names$id, "Arrival Date & Time",
+                            "Admit Date & Time", "Discharge Date & Time",
+                            "Encounter Type", "Admit Source", "Admit Type",
+                            "Person Location- Facility (Curr)",
+                            "Person Location- Nurse Unit (Admit)")
+               col.names <- c(pt.id, "arrival.datetime", "admit.datetime",
+                              "discharge.datetime", "visit.type", "admit.source",
+                              "admit.type", "facility", "nurse.unit.admit")
+               col.types <- readr::cols("c", col_dt, col_dt, col_dt, "c", "c",
+                                        "c", "c", "c")
            },
 
            vitals = {
