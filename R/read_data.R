@@ -52,11 +52,13 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #' files and binds them together into a data frame using
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
-#' Valid options for type include: blood, charges, demographics, diagnosis,
-#' encounters, events, home_meds, icu_assess, id, labs, locations, measures,
-#' meds_continuous, meds_sched, meds_sched_freq, mpp, orders, patients,
-#' problems, procedures, radiology, services, surgeries, uop, vent_settings,
-#' vent_start, visits, vitals, warfarin
+#' Valid options for type include: blood, charges, demographics, diagnosis*,
+#' encounters, events, home_meds, icd9, icd10, icu_assess, id, labs, locations,
+#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, orders,
+#' patients, problems, procedures, radiology, services, surgeries, uop,
+#' vent_settings, vent_start, visits, vitals, warfarin
+#'
+#' * diagnosis option is deprecated; use icd9 or icd10 instead
 #'
 #' @param data.dir A character string with the name of the directory containing
 #'   the data files
@@ -169,6 +171,20 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.types <- readr::cols("c", "c", "c", "c")
                dots <- list(~stringr::str_to_lower(med))
                nm <- "med"
+           },
+
+           icd9 = {
+               col.raw <- c(raw.names$id, "ICD9 Diagnosis Code",
+                            "Diagnosis Type", "Diagnosis Code Sequence")
+               col.names <- c(pt.id, "diag.code", "diag.type", "diag.seq")
+               col.types <- readr::cols("c", "c", "c", "c")
+           },
+
+           icd10 = {
+               col.raw <- c(raw.names$id, "ICD10 Diagnosis Code",
+                            "Diagnosis Type", "Diagnosis Code Sequence")
+               col.names <- c(pt.id, "diag.code", "diag.type", "diag.seq")
+               col.types <- readr::cols("c", "c", "c", "c")
            },
 
            icu_assess = {
