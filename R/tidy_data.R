@@ -123,7 +123,7 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
 #'
 tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
     # convert any CCS codes to ICD
-    lookup.codes <- icd_lookup(ref.data)
+    lookup.codes <- icd_lookup(ref.data, icd10)
     lookup.codes <- dplyr::ungroup(lookup.codes)
     dots <- list(~factor(disease.state))
     nm <- "disease.state"
