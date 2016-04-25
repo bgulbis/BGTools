@@ -6,7 +6,7 @@
 #' corresponding ICD9 codes
 #'
 #' Deprecated function, use \code{\link{icd_lookup}} instead.
-
+#'
 #' This function takes a data frame with three columns: disease.state, type, and
 #' code. The column \code{disease.state} is a character field with the name of a
 #' disease state which will be used for grouping. The column \code{type} is a

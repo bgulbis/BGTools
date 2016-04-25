@@ -6,7 +6,10 @@
 #'
 #' This function calls the underlying tidy function based on the value passed to
 #' the type parameter and returns the tidy data frame. Valid options for type
-#' are: diagnosis, locations, meds_cont, meds_outpt, meds_sched, services.
+#' are: diagnosis*, icd9, icd10, locations, meds_cont, meds_outpt, meds_sched,
+#' services.
+#'
+#' * diagnosis is deprecated, use icd9 or icd10 instead
 #'
 #' @param raw.data A data frame with the data to be tidied
 #' @param type A character indicating what type of data is being tidied
@@ -26,6 +29,8 @@ tidy_data <- function(raw.data, type, ...) {
     # call the desired tidy function based on type
     switch(type,
            diagnosis = tidy_diagnosis(raw.data, ref.data, patients),
+           icd9 = tidy_icd(raw.data, ref.data, FALSE, patients),
+           icd10 = tidy_icd(raw.data, ref.data, TRUE, patients),
            locations = tidy_locations(raw.data),
            meds_cont = tidy_meds_cont(raw.data, ref.data, sched.data),
            meds_outpt = tidy_meds_outpt(raw.data, ref.data, patients, home),
@@ -44,6 +49,8 @@ fill_false <- function(y) {
 #'
 #' \code{tidy_diagnosis} determines which patients have the desired diagnosis
 #'
+#' Deprecated function, use \code{\link{tidy_icd}} instead.
+#'
 #' This function takes a data frame with reference diagnosis codes and a data
 #' frame with all patient diagnosis codes, and returns a data frame with a
 #' logical for each disease state for each patient.
@@ -56,6 +63,8 @@ fill_false <- function(y) {
 #' @return A data frame
 #'
 tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
+    warning("icd9_lookup is deprecated, use icd_lookup instead")
+
     # convert any CCS codes to ICD9
     lookup.codes <- icd9_lookup(ref.data)
     lookup.codes <- dplyr::ungroup(lookup.codes)
@@ -69,6 +78,63 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
 
     # join with the lookup codes
     tidy <- dplyr::inner_join(tidy, lookup.codes, by = c("diag.code" = "icd9.code"))
+
+    # add a column called value and assign as TRUE, to be used with spread
+    dots <- lazyeval::interp("y", y = TRUE)
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "value"))
+
+    # drop all columns except pie.id, disease state, and value
+    dots <- list("pie.id", "disease.state", "value")
+    tidy <- dplyr::select_(tidy, .dots = dots)
+
+    # remove all duplicate pie.id / disease state combinations
+    dots <- list("pie.id", "disease.state")
+    tidy <- dplyr::distinct_(tidy, .dots = dots)
+
+    # convert the data to wide format
+    tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE, drop = FALSE)
+
+    # join with list of all patients, fill in values of FALSE for any patients
+    # not in the data set
+    if (!is.null(patients)) {
+        tidy <- dplyr::full_join(tidy, patients, by = "pie.id")
+        tidy <- dplyr::mutate_each_(tidy, funs(fill_false), list(quote(-pie.id)))
+    }
+
+    tidy
+}
+
+#' Tidy ICD9/10 diagnosis codes
+#'
+#' \code{tidy_icd} determines which patients have the desired ICD9/10 diagnosis
+#'
+#' This function takes a data frame with reference diagnosis codes and a data
+#' frame with all patient diagnosis codes, and returns a data frame with a
+#' logical for each disease state for each patient.
+#'
+#' @param raw.data A data frame with all patient diagnosis codes
+#' @param ref.data A data frame with the desired diagnosis codes
+#' @param icd10 A logical indicating whether to use ICD-10 codes (default) or
+#'   ICD-9 codes
+#' @param patients An optional data frame with a column pie.id including all
+#'   patients in study
+#'
+#' @return A data frame
+#'
+tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
+    # convert any CCS codes to ICD
+    lookup.codes <- icd_lookup(ref.data)
+    lookup.codes <- dplyr::ungroup(lookup.codes)
+    dots <- list(~factor(disease.state))
+    nm <- "disease.state"
+    lookup.codes <- dplyr::mutate_(lookup.codes, .dots = setNames(dots, nm))
+
+    # only use finalized diagnosis codes
+    dots <- list(~diag.type != "Admitting", ~diag.type != "Working")
+    tidy <- dplyr::filter_(raw.data, .dots = dots)
+
+    # join with the lookup codes
+    tidy <- dplyr::inner_join(tidy, lookup.codes, by = c("diag.code" = "icd.code"))
 
     # add a column called value and assign as TRUE, to be used with spread
     dots <- lazyeval::interp("y", y = TRUE)
