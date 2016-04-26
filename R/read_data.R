@@ -54,7 +54,7 @@ read_data <- function(data.dir, file.name, base = FALSE,
 #'
 #' Valid options for type include: blood, charges, demographics, diagnosis*,
 #' encounters, events, home_meds, icd9, icd10, icu_assess, id, labs, locations,
-#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, orders,
+#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, mrn, orders,
 #' patients, problems, procedures, radiology, services, surgeries, uop,
 #' vent_settings, vent_start, visits, vitals, warfarin
 #'
@@ -271,6 +271,12 @@ read_edw_data <- function(data.dir, file.name, type = NA,
            mpp = {
                col.raw <- c(raw.names$id, "MPP (which generated order)")
                col.names <- c(pt.id, "mpp")
+               col.types <- readr::cols("c", "c")
+           },
+
+           mrn = {
+               col.raw <- c("MRN- Organization", "Person ID")
+               col.names <- c("mrn", "person.id")
                col.types <- readr::cols("c", "c")
            },
 
