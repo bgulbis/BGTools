@@ -154,6 +154,7 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
     if (!is.null(patients)) {
+        patients <- dplyr::select_(patients, "pie.id")
         tidy <- dplyr::full_join(tidy, patients, by = "pie.id")
         tidy <- dplyr::mutate_each_(tidy, funs(fill_false), list(quote(-pie.id)))
     }
