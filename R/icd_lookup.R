@@ -95,11 +95,38 @@ icd_description <- function(codes, icd10 = FALSE, procedure = FALSE) {
 #' @return A data frame
 #'
 #' @export
-find_icd_codes <- function(pattern, icd10 = FALSE) {
+find_icd_codes <- function(pattern, icd10 = FALSE, procedure = FALSE) {
     data <- get_icd_data(icd10, procedure)
 
     expr <- stringr::regex(pattern, ignore_case = TRUE)
     dots <- list(~stringr::str_detect(icd.description, expr))
+    # get only the desired descriptions based on ICD codes
+    icd <- dplyr::filter_(data, .dots = dots)
+}
+
+#' Lookup ICD9/10 CCS codes by description
+#'
+#' \code{find_ccs_codes} takes a regular expression and returns a data frame
+#' with matching CCS codes
+#'
+#' This function takes a regular expression and matches it to the CCS
+#' description. A data frame containing the matching CCS codes is returned.
+#'
+#'
+#' @param pattern A regular expression
+#' @param icd10 A logical indicating whether to use ICD-10 codes (default) or
+#'   ICD-9 codes
+#' @param procedure A logical indicating whether to use diagnosis codes
+#'   (default) or procedure codes
+#'
+#' @return A data frame
+#'
+#' @export
+find_ccs_codes <- function(pattern, icd10 = FALSE, procedure = FALSE) {
+    data <- get_icd_data(icd10, procedure)
+
+    expr <- stringr::regex(pattern, ignore_case = TRUE)
+    dots <- list(~stringr::str_detect(ccs.description, expr))
     # get only the desired descriptions based on ICD codes
     icd <- dplyr::filter_(data, .dots = dots)
 }

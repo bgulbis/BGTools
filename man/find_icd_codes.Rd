@@ -4,7 +4,7 @@
 \alias{find_icd_codes}
 \title{Lookup ICD9/10 codes by description}
 \usage{
-find_icd_codes(pattern, icd10 = FALSE)
+find_icd_codes(pattern, icd10 = FALSE, procedure = FALSE)
 }
 \arguments{
 \item{pattern}{A regular expression}
