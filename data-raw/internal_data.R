@@ -18,7 +18,6 @@ ccs9.diagnosis <- read_csv("data-raw/$dxref 2015.csv.gz", skip = 1) %>%
     mutate_each(funs(str_replace_all(., "\'", "")), `'ICD-9-CM CODE'`, contains("CCS CATEGORY")) %>%
     mutate_each(funs(str_trim(., side = "both"))) %>%
     mutate(num = ifelse(str_detect(`'ICD-9-CM CODE'`, "^E"), 4, 3),
-           len = str_length(`'ICD-9-CM CODE'`),
            icd.code = ifelse(str_length(`'ICD-9-CM CODE'`) > 3,
                              str_c(str_sub(`'ICD-9-CM CODE'`, end = num), ".",
                                    str_sub(`'ICD-9-CM CODE'`, start = num + 1)),
@@ -43,8 +42,10 @@ ccs9.procedures <- read_csv("data-raw/$prref 2015.csv.gz", skip = 1) %>%
 ccs10.diagnosis <- read_csv("data-raw/ccs_dx_icd10cm_2016.csv.gz") %>%
     mutate_each(funs(str_replace_all(., "\'", "")), `'ICD-10-CM CODE'`,
                 `'CCS CATEGORY'`, contains("MULTI")) %>%
-    mutate(icd.code = str_c(str_sub(`'ICD-10-CM CODE'`, end = 3), ".",
-                              str_sub(`'ICD-10-CM CODE'`, start = 4))) %>%
+    mutate(icd.code = ifelse(str_length(`'ICD-10-CM CODE'`) > 3,
+                             str_c(str_sub(`'ICD-10-CM CODE'`, end = 3), ".",
+                                   str_sub(`'ICD-10-CM CODE'`, start = 4)),
+                             `'ICD-10-CM CODE'`)) %>%
     select(icd.code,
            icd.description = `'ICD-10-CM CODE DESCRIPTION'`,
            ccs.code = `'CCS CATEGORY'`,
