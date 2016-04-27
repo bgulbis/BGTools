@@ -10,5 +10,5 @@ Description: This package contains several functions which are helpful for
     and checking for lab changes over a specified period of time.
 License: GPL-3
 LazyData: TRUE
-Imports: R.utils, lubridate, dplyr, stringr, MESS, tidyr, lazyeval, zoo, purrr, FSA, tableone, ReporteRs, broom, readr
+Imports: R.utils, lubridate, dplyr, stringr, MESS, tidyr, lazyeval, zoo, purrr, FSA, tableone, ReporteRs, broom, readr, tibble
 RoxygenNote: 5.0.1

@@ -22,7 +22,7 @@
 #' @export
 check_pregnant <- function(labs, icd9 = NULL, icd10 = NULL) {
     # these ccs codes correspond to pregnancy
-    preg.codes <- data.frame(disease.state = "preg", type = "CCS",
+    preg.codes <- tibble::data_frame(disease.state = "preg", type = "CCS",
                              code = as.character(c(177:188, 190:196)))
 
     # find any patients with matching icd9 codes
@@ -38,5 +38,5 @@ check_pregnant <- function(labs, icd9 = NULL, icd10 = NULL) {
     # find any patients with a positive pregnancy test
     labs <- dplyr::filter_(labs, .dots = list(~lab.result == "Positive"))
 
-    preg <- dplyr::data_frame(pie.id = c(icd9$pie.id, icd10$pie.id, labs$pie.id))
+    preg <- tibble::data_frame(pie.id = c(icd9$pie.id, icd10$pie.id, labs$pie.id))
 }
