@@ -33,10 +33,14 @@ files and binds them together into a data frame using
 Valid options for type include: blood, charges, demographics, diagnosis*,
 encounters, events, home_meds, icd9, icd10, icu_assess, id, labs, locations,
 measures, meds_continuous, meds_sched, meds_sched_freq, mpp, mrn, orders,
-patients, problems, procedures, radiology, services, surgeries, uop,
-vent_settings, vent_start, visits, vitals, warfarin
+patients, problems, procedures**, procedures_icd9, procedures_icd10,
+radiology, services, surgeries, uop, vent_settings, vent_start, visits,
+vitals, warfarin
 
 * diagnosis option is deprecated; use icd9 or icd10 instead
+
+** procedures option is deprecated; use procedures_icd9 or procedures_icd10
+instead
 }
 \seealso{
 \code{\link[readr]{read_csv}}
