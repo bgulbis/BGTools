@@ -27,14 +27,16 @@ make_inr_ranges <- function(raw.data) {
     }
 
     find <- c("(INR|Goal)|-\\.|\\(.*\\)|=",
-              "above|greater( than)?",
-              "below|less( than)?",
               "\\.\\.",
               "--|to|/",
               "[0-9\\.]+( )[0-9\\.]+",
-              "[1-9\\.]+([0])[1-9\\.]+")
+              "[1-9\\.]+([0])[1-9\\.]+",
+              "(>|above|greater[ than]?)[ ]?([0-9\\.]+)",
+              "(<|below|less[ than]?)[ ]?([0-9\\.]+)",
+              "^1.[5-9]$", "^2$", "^2.[1-4]$", "^2.5$", "^2.[6-9]$", "^3$", "^3.5$")
 
-    replace <- c("", ">", "<", ".", "-", "-", "-")
+    replace <- c("", ".", "-", "-", "-", "\\2-3.5", "1.5-\\2",
+                 "1.5-2", "1.5-2.5", "2-2.5", "2-3", "2.5-3", "2.5-3.5", "3-4")
 
     # perform string replacements to clean up inr ranges
     purrr::walk2(.x = find, .y = replace, .f = fix_ranges)
