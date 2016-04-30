@@ -57,5 +57,69 @@ make_inr_ranges <- function(raw.data) {
     tidy <- purrr::dmap_at(.d = tidy, .at = c("goal.low", "goal.high"),
                            .f = fix_div, n = 10)
 
-    tidy
+    dots <- list(quote(-warfarin.result), quote(-warfarin.event))
+    tidy <- dplyr::select_(tidy, .dots = dots)
+}
+
+#' Make warfarin indications
+#'
+#' \code{make_indications} tidy warfarin indication data
+#'
+#' This function takes a data frame with the raw warfarin indication as input
+#' into the EMR and returns a tidy data frame with the indication categorized.
+#' It tidies up non-standard indications before returning the values.
+#'
+#' @param raw.data A data frame with warfarin indications
+#'
+#' @return A data frame
+#'
+#' @export
+make_indications <- function(raw.data) {
+    # make sure we are only working with warfarin indication data, remove and
+    # empty values
+    dots <- list(~warfarin.event == "warfarin indication", ~warfarin.result != "")
+    tidy <- dplyr::filter_(raw.data, .dots = dots)
+
+    # substitute an alternate string for standard DVT and PE strings, at
+    # facilitate identifying other types of thrombosis
+    tidy <- purrr::dmap_at(tidy, "warfarin.result", str_replace_all,
+                           pattern = "Deep vein thrombosis",
+                           replacement = "D-V-T")
+
+    tidy <- purrr::dmap_at(tidy, "warfarin.result", str_replace_all,
+                           pattern = "Pulmonary embolism",
+                           replacement = "P-E")
+
+    # detect the matching pattern
+    find_string <- function(x) {
+        lazyeval::interp(~stringr::str_detect(tidy$warfarin.result,
+                                             stringr::regex(y, ignore_case = TRUE)),
+                         y = x)
+    }
+
+    # patterns to use for each indication
+    find <- c("Atrial fibrillation|a(.*)?fib|a(.*)?flutter",
+              "D-V-T|DVT(?!( prophylaxis))|VTE", "P-E|PE",
+              "Heart valve \\(Mech/porc/bioprost\\)|valve|avr|mvr",
+              "st(ro|or)ke|cva|ica|mca",
+              "vad|hm[ ]?ii|heart( )?mate|heartware|syncardia|total artificial heart|tah",
+              "throm|clot|emboli|occl",
+              "malig|anti(.)?phos|lupus|apla|hypercoag|deficien|leiden|fvl|factor v",
+              "prophylax")
+
+    dots <- purrr::map(find, find_string)
+    nm <- c("afib", "dvt", "pe", "valve", "stroke", "vad", "thrombus",
+           "hypercoag", "prophylaxis")
+
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    # if none of the other indications were found, use "other"
+    dots <- list(~ifelse(afib == FALSE & dvt == FALSE & pe == FALSE &
+                             valve == FALSE & stroke == FALSE & vad == FALSE &
+                             thrombus == FALSE & hypercoag == FALSE &
+                             prophylaxis == FALSE, TRUE, FALSE))
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "other"))
+
+    dots <- list(quote(-warfarin.result), quote(-warfarin.event))
+    tidy <- dplyr::select_(tidy, .dots = dots)
 }
