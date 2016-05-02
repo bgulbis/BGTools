@@ -7,7 +7,7 @@
 #' This function calls the underlying tidy function based on the value passed to
 #' the type parameter and returns the tidy data frame. Valid options for type
 #' are: diagnosis*, icd9, icd10, locations, meds_cont, meds_outpt, meds_sched,
-#' services.
+#' services, visit_times.
 #'
 #' * diagnosis is deprecated, use icd9 or icd10 instead
 #'
@@ -36,6 +36,7 @@ tidy_data <- function(raw.data, type, ...) {
            meds_outpt = tidy_meds_outpt(raw.data, ref.data, patients, home),
            meds_sched = tidy_meds_sched(raw.data, ref.data),
            services = tidy_services(raw.data),
+           vent_times = tidy_vent_times(raw.data, visit.times),
            stop("Invalid type")
     )
 }
@@ -435,6 +436,84 @@ tidy_services <- function(raw.data) {
 
     dots <- list(quote(-end.recorded), quote(-end.calculated))
     tidy <- dplyr::select_(tidy, .dots = dots)
+
+    tidy <- dplyr::ungroup(tidy)
+}
+
+#' Tidy vent times
+#'
+#' \code{tidy_vent_times} tidy ventilator start/stop data
+#'
+#' This function takes a data frame with ventilator times and produces a tidy
+#' version with accurate start and stop dates/times. It accounts for incorrect
+#' end times from raw EDW data. The data should be read in by
+#' \code{\link[BGTools]{read_edw_data}}.
+#'
+#' @param raw.data A data frame with vent times
+#' @param visit.times A data frame with discharge date/times
+#'
+#' @return A data frame
+#'
+tidy_vent_times <- function(raw.data, visit.times) {
+    # remove any missing data
+    tidy <- dplyr::filter_(raw.data, .dots = list(~!is.na(vent.datetime)))
+
+    tidy <- dplyr::group_by_(tidy, .dots = "pie.id")
+    tidy <- dplyr::arrange_(tidy, .dots = "vent.datetime")
+
+    # if it's the first event or the next event is a stop, then count as a new
+    # vent event
+    dots <- list(~ifelse(is.na(dplyr::lag(vent.event)) |
+                             vent.event != lag(vent.event), TRUE, FALSE),
+                 ~cumsum(diff.event))
+    nm <- c("diff.event", "event.count")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::group_by_(tidy, .dots = list("pie.id", "event.count"))
+
+    # for each event count, get the first and last date/time
+    dots <- list(~dplyr::first(vent.event), ~dplyr::first(vent.datetime),
+                 ~dplyr::last(vent.datetime))
+    nm <- c("event", "first.event.datetime", "last.event.datetime")
+    tidy <- dplyr::summarize_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::group_by_(tidy, .dots = "pie.id")
+
+    tidy <- dplyr::left_join(tidy, visit.times[c("pie.id", "discharge.datetime")],
+                             by = "pie.id")
+
+    # use the last date/time of the next event as stop date/time; this would be
+    # the last stop event if there are multiple stop events in a row
+    dots <- list(~dplyr::lead(last.event.datetime))
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "stop.datetime"))
+
+    tidy <- dplyr::rowwise(tidy)
+
+
+    # function to select between stop date/time or discharge date/time,
+    # work-around for loss of POSIXct type when using ifelse
+    get_date <- function(end, dc) {
+        if (is.na(end)) {
+            dc
+        } else {
+            end
+        }
+    }
+
+    # if there isn't a stop date/time because there was start with no stop, use
+    # the discharge date/time as stop date/time
+    dots <- list(~get_date(stop.datetime, discharge.datetime),
+                 ~difftime(stop.datetime, first.event.datetime, units = "hours"))
+    nm <- c("stop.datetime", "vent.duration")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::filter_(tidy, .dots = list(~event == "vent start time"))
+
+    tidy <- dplyr::rename_(tidy, .dots = setNames("first.event.datetime",
+                                                  "start.datetime"))
+
+    tidy <- dplyr::select_(tidy, .dots = list("pie.id", "start.datetime",
+                                              "stop.datetime", "vent.duration"))
 
     tidy <- dplyr::ungroup(tidy)
 }
