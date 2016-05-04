@@ -258,6 +258,9 @@ calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
 #'
 #' @export
 lab_change <- function(lab.data, change.by, FUN, back = 2) {
+    lab.data <- dplyr::group_by_(lab.data, .dots = "pie.id")
+    lab.data <- dplyr::arrange_(lab.data, .dots = "lab.datetime")
+
     # calculate the number of rows that are included within the window
     dots <- list(~count_rowsback(lab.datetime, back))
     lab.data <- dplyr::mutate_(lab.data, .dots = setNames(dots, "rowsback"))
