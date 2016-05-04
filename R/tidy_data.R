@@ -6,8 +6,8 @@
 #'
 #' This function calls the underlying tidy function based on the value passed to
 #' the type parameter and returns the tidy data frame. Valid options for type
-#' are: diagnosis*, icd9, icd10, locations, meds_cont, meds_outpt, meds_sched,
-#' services, visit_times.
+#' are: diagnosis*, icd9, icd10, labs, locations, meds_cont, meds_outpt,
+#' meds_sched, services, visit_times.
 #'
 #' * diagnosis is deprecated, use icd9 or icd10 instead
 #'
@@ -21,6 +21,7 @@
 tidy_data <- function(raw.data, type, ...) {
     home <- TRUE
     patients <- NULL
+    censor <- TRUE
 
     # get list of parameters from ellipsis
     x <- list(...)
@@ -31,6 +32,7 @@ tidy_data <- function(raw.data, type, ...) {
            diagnosis = tidy_diagnosis(raw.data, ref.data, patients),
            icd9 = tidy_icd(raw.data, ref.data, FALSE, patients),
            icd10 = tidy_icd(raw.data, ref.data, TRUE, patients),
+           labs = tidy_labs(raw.data, censor),
            locations = tidy_locations(raw.data),
            meds_cont = tidy_meds_cont(raw.data, ref.data, sched.data),
            meds_outpt = tidy_meds_outpt(raw.data, ref.data, patients, home),
@@ -163,6 +165,35 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
 
     tidy
 }
+
+#' Tidy lab results
+#'
+#' \code{tidy_labs} tidy lab result data
+#'
+#' This function takes a data frame with lab results and returns a tidy data
+#' frame. Results will be converted to numeric values and censored data will be
+#' indicated.
+#'
+#' @param raw.data A data frame with all scheduled medications
+#' @param censor A logical, will check for censored data if TRUE (default)
+#'
+#' @return A data frame
+#'
+tidy_labs <- function(raw.data, censor = TRUE) {
+    tidy <- raw.data
+
+    # create a column noting if data was censored
+    if (censor == TRUE) {
+        dots <- list(~stringr::str_detect(lab.result, ">|<"))
+        tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "censored"))
+
+    }
+
+    # convert lab results to numeric values
+    dots <- list(~as.numeric(lab.result))
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "lab.result"))
+}
+
 
 #' Tidy outpatient medications
 #'
