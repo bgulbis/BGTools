@@ -4,10 +4,13 @@
 \alias{calc_lab_runtime}
 \title{Calculate run times for labs}
 \usage{
-calc_lab_runtime(cont.data)
+calc_lab_runtime(cont.data, units = "hours")
 }
 \arguments{
 \item{cont.data}{A data frame with serial measurement data}
+
+\item{units}{An optional string with the unit of measure to pass to
+\code{\link{difftime}}, defaults to hours}
 }
 \value{
 A data frame

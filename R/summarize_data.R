@@ -186,15 +186,17 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
 #' zero time for calculations.
 #'
 #' @param cont.data A data frame with serial measurement data
+#' @param units An optional string with the unit of measure to pass to
+#'   \code{\link{difftime}}, defaults to hours
 #'
 #' @return A data frame
 #'
 #' @export
-calc_lab_runtime <- function(cont.data) {
+calc_lab_runtime <- function(cont.data, units = "hours") {
     dots <- list(~as.numeric(difftime(lab.datetime, dplyr::lag(lab.datetime),
-                                      units = "hours")),
+                                      units = units)),
                  ~ifelse(is.na(duration), 0, duration),
-                 ~as.numeric(difftime(lab.datetime, lab.start, units = "hours")))
+                 ~as.numeric(difftime(lab.datetime, lab.start, units = units)))
     nm <- c("duration", "duration", "run.time")
     cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
 }
