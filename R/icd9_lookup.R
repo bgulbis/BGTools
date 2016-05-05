@@ -48,7 +48,7 @@ icd9_lookup <- function(df, procedure = FALSE) {
     # rename code column
     icd9 <- dplyr::rename_(icd9, .dots = setNames("code", "icd.code"))
     # join list with data
-    icd <- dplyr::inner_join(icd, data, by = "icd.code")
+    icd9 <- dplyr::inner_join(icd9, data, by = "icd.code")
 
     # create one table with all ICD9 codes that should be excluded
     codes <- dplyr::bind_rows(ccs, icd9)
@@ -94,7 +94,7 @@ icd9_description <- function(codes, procedure = FALSE) {
     # keep only ICD9 code and description columns
     dots <- list("icd.code", "icd.description")
     nm <- list("icd9.code", "icd9.description")
-    descript <- dplyr::select_(descript, .dots = setNmaes(dots, nm))
+    descript <- dplyr::select_(descript, .dots = setNames(dots, nm))
 
     return(descript)
 }

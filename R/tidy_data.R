@@ -6,8 +6,8 @@
 #'
 #' This function calls the underlying tidy function based on the value passed to
 #' the type parameter and returns the tidy data frame. Valid options for type
-#' are: diagnosis*, icd9, icd10, locations, meds_cont, meds_outpt, meds_sched,
-#' services.
+#' are: diagnosis*, icd9, icd10, labs, locations, meds_cont, meds_outpt,
+#' meds_sched, services, visit_times.
 #'
 #' * diagnosis is deprecated, use icd9 or icd10 instead
 #'
@@ -21,6 +21,10 @@
 tidy_data <- function(raw.data, type, ...) {
     home <- TRUE
     patients <- NULL
+    censor <- TRUE
+    ref.data <- NULL
+    sched.data <- NULL
+    visit.times <- NULL
 
     # get list of parameters from ellipsis
     x <- list(...)
@@ -31,11 +35,13 @@ tidy_data <- function(raw.data, type, ...) {
            diagnosis = tidy_diagnosis(raw.data, ref.data, patients),
            icd9 = tidy_icd(raw.data, ref.data, FALSE, patients),
            icd10 = tidy_icd(raw.data, ref.data, TRUE, patients),
+           labs = tidy_labs(raw.data, censor),
            locations = tidy_locations(raw.data),
            meds_cont = tidy_meds_cont(raw.data, ref.data, sched.data),
            meds_outpt = tidy_meds_outpt(raw.data, ref.data, patients, home),
            meds_sched = tidy_meds_sched(raw.data, ref.data),
            services = tidy_services(raw.data),
+           vent_times = tidy_vent_times(raw.data, visit.times),
            stop("Invalid type")
     )
 }
@@ -92,13 +98,15 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
     tidy <- dplyr::distinct_(tidy, .dots = dots)
 
     # convert the data to wide format
-    tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE, drop = FALSE)
+    tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE,
+                           drop = FALSE)
 
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(.), FALSE, .)),
+        tidy <- dplyr::rowwise(tidy)
+        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
 
@@ -156,12 +164,42 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(.), FALSE, .)),
+        tidy <- dplyr::rowwise(tidy)
+        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
 
     tidy
 }
+
+#' Tidy lab results
+#'
+#' \code{tidy_labs} tidy lab result data
+#'
+#' This function takes a data frame with lab results and returns a tidy data
+#' frame. Results will be converted to numeric values and censored data will be
+#' indicated.
+#'
+#' @param raw.data A data frame with all scheduled medications
+#' @param censor A logical, will check for censored data if TRUE (default)
+#'
+#' @return A data frame
+#'
+tidy_labs <- function(raw.data, censor = TRUE) {
+    tidy <- raw.data
+
+    # create a column noting if data was censored
+    if (censor == TRUE) {
+        dots <- list(~stringr::str_detect(lab.result, ">|<"))
+        tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "censored"))
+
+    }
+
+    # convert lab results to numeric values
+    dots <- list(~as.numeric(lab.result))
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "lab.result"))
+}
+
 
 #' Tidy outpatient medications
 #'
@@ -228,7 +266,8 @@ tidy_meds_outpt <- function(raw.data, ref.data, patients = NULL, home = TRUE) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::semi_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(.), FALSE, .)),
+        tidy <- dplyr::rowwise(tidy)
+        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
 
@@ -435,6 +474,84 @@ tidy_services <- function(raw.data) {
 
     dots <- list(quote(-end.recorded), quote(-end.calculated))
     tidy <- dplyr::select_(tidy, .dots = dots)
+
+    tidy <- dplyr::ungroup(tidy)
+}
+
+#' Tidy vent times
+#'
+#' \code{tidy_vent_times} tidy ventilator start/stop data
+#'
+#' This function takes a data frame with ventilator times and produces a tidy
+#' version with accurate start and stop dates/times. It accounts for incorrect
+#' end times from raw EDW data. The data should be read in by
+#' \code{\link[BGTools]{read_edw_data}}.
+#'
+#' @param raw.data A data frame with vent times
+#' @param visit.times A data frame with discharge date/times
+#'
+#' @return A data frame
+#'
+tidy_vent_times <- function(raw.data, visit.times) {
+    # remove any missing data
+    tidy <- dplyr::filter_(raw.data, .dots = list(~!is.na(vent.datetime)))
+
+    tidy <- dplyr::group_by_(tidy, .dots = "pie.id")
+    tidy <- dplyr::arrange_(tidy, .dots = "vent.datetime")
+
+    # if it's the first event or the next event is a stop, then count as a new
+    # vent event
+    dots <- list(~ifelse(is.na(dplyr::lag(vent.event)) |
+                             vent.event != lag(vent.event), TRUE, FALSE),
+                 ~cumsum(diff.event))
+    nm <- c("diff.event", "event.count")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::group_by_(tidy, .dots = list("pie.id", "event.count"))
+
+    # for each event count, get the first and last date/time
+    dots <- list(~dplyr::first(vent.event), ~dplyr::first(vent.datetime),
+                 ~dplyr::last(vent.datetime))
+    nm <- c("event", "first.event.datetime", "last.event.datetime")
+    tidy <- dplyr::summarize_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::group_by_(tidy, .dots = "pie.id")
+
+    tidy <- dplyr::left_join(tidy, visit.times[c("pie.id", "discharge.datetime")],
+                             by = "pie.id")
+
+    # use the last date/time of the next event as stop date/time; this would be
+    # the last stop event if there are multiple stop events in a row
+    dots <- list(~dplyr::lead(last.event.datetime))
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "stop.datetime"))
+
+    tidy <- dplyr::rowwise(tidy)
+
+
+    # function to select between stop date/time or discharge date/time,
+    # work-around for loss of POSIXct type when using ifelse
+    get_date <- function(end, dc) {
+        if (is.na(end)) {
+            dc
+        } else {
+            end
+        }
+    }
+
+    # if there isn't a stop date/time because there was start with no stop, use
+    # the discharge date/time as stop date/time
+    dots <- list(~get_date(stop.datetime, discharge.datetime),
+                 ~difftime(stop.datetime, first.event.datetime, units = "hours"))
+    nm <- c("stop.datetime", "vent.duration")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::filter_(tidy, .dots = list(~event == "vent start time"))
+
+    tidy <- dplyr::rename_(tidy, .dots = setNames("first.event.datetime",
+                                                  "start.datetime"))
+
+    tidy <- dplyr::select_(tidy, .dots = list("pie.id", "start.datetime",
+                                              "stop.datetime", "vent.duration"))
 
     tidy <- dplyr::ungroup(tidy)
 }

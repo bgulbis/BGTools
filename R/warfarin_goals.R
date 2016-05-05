@@ -82,11 +82,11 @@ make_indications <- function(raw.data) {
 
     # substitute an alternate string for standard DVT and PE strings, at
     # facilitate identifying other types of thrombosis
-    tidy <- purrr::dmap_at(tidy, "warfarin.result", str_replace_all,
+    tidy <- purrr::dmap_at(tidy, "warfarin.result", stringr::str_replace_all,
                            pattern = "Deep vein thrombosis",
                            replacement = "D-V-T")
 
-    tidy <- purrr::dmap_at(tidy, "warfarin.result", str_replace_all,
+    tidy <- purrr::dmap_at(tidy, "warfarin.result", stringr::str_replace_all,
                            pattern = "Pulmonary embolism",
                            replacement = "P-E")
 

@@ -3,6 +3,7 @@
 export(add_rcitation)
 export(analyze_data)
 export(apache_score)
+export(calc_lab_runtime)
 export(calc_perc_time)
 export(calc_runtime)
 export(calculate_crcl)

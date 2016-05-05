@@ -176,6 +176,31 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     return(summary.data)
 }
 
+#' Calculate run times for labs
+#'
+#' \code{calc_lab_runtime} calculates run time and duration for labs
+#'
+#' This function takes a data frame with serial measurement data and produces a
+#' data frame with the duration of time at each value and cumulative run time.
+#' The data frame should have a column called lab.start which is used as the
+#' zero time for calculations.
+#'
+#' @param cont.data A data frame with serial measurement data
+#' @param units An optional string with the unit of measure to pass to
+#'   \code{\link{difftime}}, defaults to hours
+#'
+#' @return A data frame
+#'
+#' @export
+calc_lab_runtime <- function(cont.data, units = "hours") {
+    dots <- list(~as.numeric(difftime(lab.datetime, dplyr::lag(lab.datetime),
+                                      units = units)),
+                 ~ifelse(is.na(duration), 0, duration),
+                 ~as.numeric(difftime(lab.datetime, lab.start, units = units)))
+    nm <- c("duration", "duration", "run.time")
+    cont.data <- dplyr::mutate_(cont.data, .dots = setNames(dots, nm))
+}
+
 #' Calculate proportion of time above or below a threshold
 #'
 #' \code{calc_perc_time} calculates percent time above / below a threshold
@@ -258,6 +283,9 @@ calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
 #'
 #' @export
 lab_change <- function(lab.data, change.by, FUN, back = 2) {
+    lab.data <- dplyr::group_by_(lab.data, .dots = "pie.id")
+    lab.data <- dplyr::arrange_(lab.data, .dots = "lab.datetime")
+
     # calculate the number of rows that are included within the window
     dots <- list(~count_rowsback(lab.datetime, back))
     lab.data <- dplyr::mutate_(lab.data, .dots = setNames(dots, "rowsback"))
