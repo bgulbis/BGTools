@@ -98,14 +98,15 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
     tidy <- dplyr::distinct_(tidy, .dots = dots)
 
     # convert the data to wide format
-    tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE, drop = FALSE)
+    tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE,
+                           drop = FALSE)
 
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(dplyr::`%.%`),
-                                                      FALSE, dplyr::`%.%`)),
+        tidy <- dplyr::rowwise(tidy)
+        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
 
@@ -163,8 +164,8 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(dplyr::`%.%`),
-                                                      FALSE, dplyr::`%.%`)),
+        tidy <- dplyr::rowwise(tidy)
+        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
 
@@ -265,8 +266,8 @@ tidy_meds_outpt <- function(raw.data, ref.data, patients = NULL, home = TRUE) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::semi_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(dplyr::`%.%`),
-                                                      FALSE, dplyr::`%.%`)),
+        tidy <- dplyr::rowwise(tidy)
+        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
 
