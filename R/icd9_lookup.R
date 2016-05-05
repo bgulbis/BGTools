@@ -94,7 +94,7 @@ icd9_description <- function(codes, procedure = FALSE) {
     # keep only ICD9 code and description columns
     dots <- list("icd.code", "icd.description")
     nm <- list("icd9.code", "icd9.description")
-    descript <- dplyr::select_(descript, .dots = setNmaes(dots, nm))
+    descript <- dplyr::select_(descript, .dots = setNames(dots, nm))
 
     return(descript)
 }

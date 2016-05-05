@@ -22,6 +22,9 @@ tidy_data <- function(raw.data, type, ...) {
     home <- TRUE
     patients <- NULL
     censor <- TRUE
+    ref.data <- NULL
+    sched.data <- NULL
+    visit.times <- NULL
 
     # get list of parameters from ellipsis
     x <- list(...)
@@ -101,7 +104,8 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(.), FALSE, .)),
+        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(dplyr::`%.%`),
+                                                      FALSE, dplyr::`%.%`)),
                                     list(quote(-pie.id)))
     }
 
@@ -159,7 +163,8 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(.), FALSE, .)),
+        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(dplyr::`%.%`),
+                                                      FALSE, dplyr::`%.%`)),
                                     list(quote(-pie.id)))
     }
 
@@ -260,7 +265,8 @@ tidy_meds_outpt <- function(raw.data, ref.data, patients = NULL, home = TRUE) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::semi_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(.), FALSE, .)),
+        tidy <- dplyr::mutate_each_(tidy, funs(ifelse(is.na(dplyr::`%.%`),
+                                                      FALSE, dplyr::`%.%`)),
                                     list(quote(-pie.id)))
     }
 
