@@ -47,8 +47,9 @@ tidy_data <- function(raw.data, type, ...) {
 }
 
 # Change NA to FALSE
-fill_false <- function(y) {
-    if (is.na(y)) FALSE else y
+fill_false <- function(x) {
+    x[is.na(x)] <- FALSE
+    x
 }
 
 #' Tidy diagnosis codes
@@ -105,7 +106,6 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::rowwise(tidy)
         tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
@@ -164,7 +164,6 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::rowwise(tidy)
         tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
@@ -266,7 +265,6 @@ tidy_meds_outpt <- function(raw.data, ref.data, patients = NULL, home = TRUE) {
     # not in the data set
     if (!is.null(patients)) {
         tidy <- dplyr::semi_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::rowwise(tidy)
         tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
                                     list(quote(-pie.id)))
     }
