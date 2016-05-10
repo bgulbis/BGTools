@@ -119,7 +119,10 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                # use default columns
                col.names <- c(pt.id, "blood.datetime", "blood.prod",
                               "blood.type")
-               dots <- list(~assign_blood_prod(stringr::str_to_lower(blood.prod)))
+               prods <- c("Cryo(.*)" = "cryo", "FFP(.*)" = "ffp",
+                          "(P)?RBC(.*)" = "prbc", "Platelet(.*)" = "platelet")
+
+               dots <- list(~stringr::str_replace_all(blood.prod, prods))
                nm <- "blood.prod"
            },
 
@@ -463,30 +466,6 @@ read_edw_data <- function(data.dir, file.name, type = NA,
     }
 
     read
-}
-
-# evaluate clinical event and determine which blood product was given
-assign_blood_prod <- function(event) {
-
-    # sub-function to evaluate each row
-    get_prod <- function(x) {
-        if(stringr::str_detect(x, "cryo")) {
-            prod <- "cryo"
-        } else if(stringr::str_detect(x, "ffp")) {
-            prod <- "ffp"
-        } else if(stringr::str_detect(x, "rbc")) {
-            prod <- "prbc"
-        } else if(stringr::str_detect(x, "platelet")) {
-            prod <- "platelet"
-        } else {
-            prod <- "unknown"
-        }
-    }
-
-    # loop through each element of the vector; returns a new vector with a
-    # string identifying the product type for each element in the original
-    # vector
-    purrr::map_chr(event, get_prod)
 }
 
 #' Read in RDS files
