@@ -382,9 +382,8 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.types <- readr::cols_only("c", "c", "c", "c", "c", "c",
                                              col_dt, col_dt)
                dots <- list(~ifelse(add.on == 1, TRUE, FALSE),
-                            ~factor(asa.class, exclude = exclude),
                             ~ifelse(primary.proc == 1, TRUE, FALSE))
-               nm <- c("add.on", "asa.class", "primary.proc")
+               nm <- c("add.on", "primary.proc")
            },
 
            uop = {
