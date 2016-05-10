@@ -43,6 +43,17 @@ read_data <- function(data.dir, file.name, base = FALSE,
     raw
 }
 
+fill_x <- function(x, y, z) {
+    x[x == y] <- z
+    x
+}
+
+# Change "" to NA
+fill_na <- function(x) {
+    x[x == ""] <- NA
+    x
+}
+
 #' Read EDW data from csv files
 #'
 #' \code{read_edw_data} takes a directory and file name and reads in all
@@ -108,7 +119,10 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                # use default columns
                col.names <- c(pt.id, "blood.datetime", "blood.prod",
                               "blood.type")
-               dots <- list(~assign_blood_prod(stringr::str_to_lower(blood.prod)))
+               prods <- c("Cryo(.*)" = "cryo", "FFP(.*)" = "ffp",
+                          "(P)?RBC(.*)" = "prbc", "Platelet(.*)" = "platelet")
+
+               dots <- list(~stringr::str_replace_all(blood.prod, prods))
                nm <- "blood.prod"
            },
 
@@ -127,16 +141,18 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "age", "sex", "race", "disposition",
                               "length.stay", "visit.type", "person.id",
                               "facility")
-               race <- c("African American", "Asian", "Latin American",
-                         "Native Am.", "Other", "White/Caucasian")
-               col.types <- readr::cols("c", "i",
-                                        readr::col_factor(c("Female", "Male")),
-                                        readr::col_factor(race),
-                                        "c", "d", "c", "c", "c")
-               dots <- list(~factor(disposition, exclude = exclude),
-                            ~factor(visit.type, exclude = exclude),
-                            ~factor(facility, exclude = exclude))
-               nm <- c("disposition", "visit.type", "facility")
+               # race <- c("African American", "Asian", "Latin American",
+               #           "Native Am.", "Other", "White/Caucasian")
+               col.types <- readr::cols("c", "i", "c", "c", "c", "d", "c",
+                                        "c", "c")
+               # col.types <- readr::cols("c", "i",
+               #                          readr::col_factor(c("Female", "Male")),
+               #                          readr::col_factor(race),
+               #                          "c", "d", "c", "c", "c")
+               # dots <- list(~factor(disposition, exclude = exclude),
+               #              ~factor(visit.type, exclude = exclude),
+               #              ~factor(facility, exclude = exclude))
+               # nm <- c("disposition", "visit.type", "facility")
            },
 
            diagnosis = {
@@ -154,10 +170,10 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c("person.id", "admit.datetime", pt.id,
                               "visit.type", "facility", "disposition")
                col.types <- readr::cols("c", col_dt, "c", "c", "c", "c")
-               dots <- list(~factor(visit.type, exclude = exclude),
-                            ~factor(facility, exclude = exclude),
-                            ~factor(disposition, exclude = exclude))
-               nm <- c("visit.type", "facility", "disposition")
+               # dots <- list(~factor(visit.type, exclude = exclude),
+               #              ~factor(facility, exclude = exclude),
+               #              ~factor(disposition, exclude = exclude))
+               # nm <- c("visit.type", "facility", "disposition")
            },
 
            events = {
@@ -221,8 +237,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "arrive.datetime", "depart.datetime",
                               "unit.to", "unit.from")
                col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
-               dots <- list(~ifelse(unit.to == "", NA, unit.to),
-                            ~ifelse(unit.from == "", NA, unit.from))
+               dots <- list(~fill_na(unit.to), ~fill_na(unit.from))
                nm <- list("unit.to", "unit.from")
            },
 
@@ -241,8 +256,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "med.datetime", "med", "med.rate",
                               "med.rate.units", "event.id")
                col.types <- readr::cols("c", col_dt, "c", "d", "c", "c")
-               dots <- list(~stringr::str_to_lower(med),
-                            ~ifelse(med.rate.units == "", NA, med.rate.units))
+               dots <- list(~stringr::str_to_lower(med), ~fill_na(med.rate.units))
                nm <- list("med", "med.rate.units")
            },
 
@@ -253,8 +267,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                             "Event ID")
                col.names <- c(pt.id, "med.datetime", "med", "med.dose",
                               "med.dose.units", "med.route", "event.id")
-               col.types <- readr::cols_only("c", col_dt, "c", "d", "c", "c",
-                                             "c")
+               col.types <- readr::cols_only("c", col_dt, "c", "d", "c", "c", "c")
                dots <- list(~stringr::str_to_lower(med))
                nm <- "med"
            },
@@ -357,8 +370,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "start.datetime", "end.datetime",
                               "service", "service.from")
                col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
-               dots <- list(~ifelse(service == "", NA, service),
-                            ~ifelse(service.from == "", NA, service.from))
+               dots <- list(~fill_na(service), ~fill_na(service.from))
                nm <- list("service", "service.from")
            },
 
@@ -373,9 +385,8 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.types <- readr::cols_only("c", "c", "c", "c", "c", "c",
                                              col_dt, col_dt)
                dots <- list(~ifelse(add.on == 1, TRUE, FALSE),
-                            ~factor(asa.class, exclude = exclude),
                             ~ifelse(primary.proc == 1, TRUE, FALSE))
-               nm <- c("add.on", "asa.class", "primary.proc")
+               nm <- c("add.on", "primary.proc")
            },
 
            uop = {
@@ -455,30 +466,6 @@ read_edw_data <- function(data.dir, file.name, type = NA,
     }
 
     read
-}
-
-# evaluate clinical event and determine which blood product was given
-assign_blood_prod <- function(event) {
-
-    # sub-function to evaluate each row
-    get_prod <- function(x) {
-        if(stringr::str_detect(x, "cryo")) {
-            prod <- "cryo"
-        } else if(stringr::str_detect(x, "ffp")) {
-            prod <- "ffp"
-        } else if(stringr::str_detect(x, "rbc")) {
-            prod <- "prbc"
-        } else if(stringr::str_detect(x, "platelet")) {
-            prod <- "platelet"
-        } else {
-            prod <- "unknown"
-        }
-    }
-
-    # loop through each element of the vector; returns a new vector with a
-    # string identifying the product type for each element in the original
-    # vector
-    purrr::map_chr(event, get_prod)
 }
 
 #' Read in RDS files

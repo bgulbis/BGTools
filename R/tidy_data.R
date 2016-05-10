@@ -47,8 +47,16 @@ tidy_data <- function(raw.data, type, ...) {
 }
 
 # Change NA to FALSE
-fill_false <- function(y) {
-    if (is.na(y)) FALSE else y
+fill_false <- function(x) {
+    x[is.na(x)] <- FALSE
+    x
+}
+
+# make sure all patients are included in the table
+add_patients <- function(tidy, patients) {
+    tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
+    tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
+                                list(quote(-pie.id)))
 }
 
 #' Tidy diagnosis codes
@@ -104,10 +112,7 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
     if (!is.null(patients)) {
-        tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::rowwise(tidy)
-        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
-                                    list(quote(-pie.id)))
+        tidy <- add_patients(tidy, patients)
     }
 
     tidy
@@ -163,10 +168,7 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
     if (!is.null(patients)) {
-        tidy <- dplyr::full_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::rowwise(tidy)
-        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
-                                    list(quote(-pie.id)))
+        tidy <- add_patients(tidy, patients)
     }
 
     tidy
@@ -265,10 +267,7 @@ tidy_meds_outpt <- function(raw.data, ref.data, patients = NULL, home = TRUE) {
     # join with list of all patients, fill in values of FALSE for any patients
     # not in the data set
     if (!is.null(patients)) {
-        tidy <- dplyr::semi_join(tidy, patients["pie.id"], by = "pie.id")
-        tidy <- dplyr::rowwise(tidy)
-        tidy <- dplyr::mutate_each_(tidy, dplyr::funs("fill_false"),
-                                    list(quote(-pie.id)))
+        tidy <- add_patients(tidy, patients)
     }
 
     tidy
