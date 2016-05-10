@@ -127,16 +127,18 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "age", "sex", "race", "disposition",
                               "length.stay", "visit.type", "person.id",
                               "facility")
-               race <- c("African American", "Asian", "Latin American",
-                         "Native Am.", "Other", "White/Caucasian")
-               col.types <- readr::cols("c", "i",
-                                        readr::col_factor(c("Female", "Male")),
-                                        readr::col_factor(race),
-                                        "c", "d", "c", "c", "c")
-               dots <- list(~factor(disposition, exclude = exclude),
-                            ~factor(visit.type, exclude = exclude),
-                            ~factor(facility, exclude = exclude))
-               nm <- c("disposition", "visit.type", "facility")
+               # race <- c("African American", "Asian", "Latin American",
+               #           "Native Am.", "Other", "White/Caucasian")
+               col.types <- readr::cols("c", "i", "c", "c", "c", "d", "c",
+                                        "c", "c")
+               # col.types <- readr::cols("c", "i",
+               #                          readr::col_factor(c("Female", "Male")),
+               #                          readr::col_factor(race),
+               #                          "c", "d", "c", "c", "c")
+               # dots <- list(~factor(disposition, exclude = exclude),
+               #              ~factor(visit.type, exclude = exclude),
+               #              ~factor(facility, exclude = exclude))
+               # nm <- c("disposition", "visit.type", "facility")
            },
 
            diagnosis = {
@@ -154,10 +156,10 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c("person.id", "admit.datetime", pt.id,
                               "visit.type", "facility", "disposition")
                col.types <- readr::cols("c", col_dt, "c", "c", "c", "c")
-               dots <- list(~factor(visit.type, exclude = exclude),
-                            ~factor(facility, exclude = exclude),
-                            ~factor(disposition, exclude = exclude))
-               nm <- c("visit.type", "facility", "disposition")
+               # dots <- list(~factor(visit.type, exclude = exclude),
+               #              ~factor(facility, exclude = exclude),
+               #              ~factor(disposition, exclude = exclude))
+               # nm <- c("visit.type", "facility", "disposition")
            },
 
            events = {
