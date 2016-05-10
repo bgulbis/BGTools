@@ -43,6 +43,17 @@ read_data <- function(data.dir, file.name, base = FALSE,
     raw
 }
 
+fill_x <- function(x, y, z) {
+    x[x == y] <- z
+    x
+}
+
+# Change "" to NA
+fill_na <- function(x) {
+    x[x == ""] <- NA
+    x
+}
+
 #' Read EDW data from csv files
 #'
 #' \code{read_edw_data} takes a directory and file name and reads in all
@@ -223,8 +234,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "arrive.datetime", "depart.datetime",
                               "unit.to", "unit.from")
                col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
-               dots <- list(~ifelse(unit.to == "", NA, unit.to),
-                            ~ifelse(unit.from == "", NA, unit.from))
+               dots <- list(~fill_na(unit.to), ~fill_na(unit.from))
                nm <- list("unit.to", "unit.from")
            },
 
@@ -243,8 +253,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "med.datetime", "med", "med.rate",
                               "med.rate.units", "event.id")
                col.types <- readr::cols("c", col_dt, "c", "d", "c", "c")
-               dots <- list(~stringr::str_to_lower(med),
-                            ~ifelse(med.rate.units == "", NA, med.rate.units))
+               dots <- list(~stringr::str_to_lower(med), ~fill_na(med.rate.units))
                nm <- list("med", "med.rate.units")
            },
 
@@ -255,8 +264,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                             "Event ID")
                col.names <- c(pt.id, "med.datetime", "med", "med.dose",
                               "med.dose.units", "med.route", "event.id")
-               col.types <- readr::cols_only("c", col_dt, "c", "d", "c", "c",
-                                             "c")
+               col.types <- readr::cols_only("c", col_dt, "c", "d", "c", "c", "c")
                dots <- list(~stringr::str_to_lower(med))
                nm <- "med"
            },
@@ -359,8 +367,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                col.names <- c(pt.id, "start.datetime", "end.datetime",
                               "service", "service.from")
                col.types <- readr::cols("c", col_dt, col_dt, "c", "c")
-               dots <- list(~ifelse(service == "", NA, service),
-                            ~ifelse(service.from == "", NA, service.from))
+               dots <- list(~fill_na(service), ~fill_na(service.from))
                nm <- list("service", "service.from")
            },
 
