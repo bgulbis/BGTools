@@ -537,8 +537,7 @@ tidy_vent_times <- function(raw.data, visit.times) {
 
     tidy <- dplyr::ungroup(tidy)
 
-    dots <- list(~lubridate::interval(start.datetime, stop.datetime),
-                 ~difftime(stop.datetime, start.datetime, units = "hours"))
-    nm <- c("vent.interval", "vent.duration")
+    dots <- list(~difftime(stop.datetime, start.datetime, units = "hours"))
+    nm <- "vent.duration"
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 }
