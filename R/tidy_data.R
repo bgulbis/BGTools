@@ -404,16 +404,15 @@ tidy_locations <- function(raw.data) {
     nm <- "depart.datetime"
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
-    # if calculated time is NA, use recorded time
+    # replace NA with recorded date/time
     tidy$depart.datetime[is.na(tidy$depart.datetime)] <-
         tidy$depart.recorded[is.na(tidy$depart.datetime)]
 
     tidy <- dplyr::ungroup(tidy)
 
-    dots <- list(~lubridate::interval(arrive.datetime, depart.datetime),
-                 ~as.numeric(difftime(depart.datetime, arrive.datetime,
+    dots <- list(~as.numeric(difftime(depart.datetime, arrive.datetime,
                                       units = "days")))
-    nm <- list("unit.interval", "unit.length.stay")
+    nm <- "unit.length.stay"
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
     tidy <- dplyr::select_(tidy, .dots = list(quote(-depart.recorded)))
