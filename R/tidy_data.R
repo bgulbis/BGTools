@@ -383,16 +383,14 @@ tidy_locations <- function(raw.data) {
     tidy <- dplyr::group_by_(raw.data, "pie.id")
     tidy <- dplyr::arrange_(tidy, "arrive.datetime")
 
-    # determine if they went to a different unit, then make a count of different
-    # units
-    dots <- list(~ifelse(is.na(unit.to) | is.na(dplyr::lag(unit.to)) |
-                             unit.to != dplyr::lag(unit.to), TRUE, FALSE),
+    # determine if they went to a different unit, count num of different units
+    dots <- list(~is.na(unit.to) | is.na(dplyr::lag(unit.to)) |
+                     unit.to != dplyr::lag(unit.to),
                  ~cumsum(diff.unit))
     nm <- list("diff.unit", "unit.count")
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
-    # use the unit.count to group multiple rows of the same unit together and
-    # combine data
+    # use the unit.count to group multiple rows of the same unit together
     dots <- list("pie.id", "unit.count")
     tidy <- dplyr::group_by_(tidy, .dots = dots)
 
@@ -403,21 +401,23 @@ tidy_locations <- function(raw.data) {
 
     # use the arrival time for the next unit to calculate a depart time
     dots <- list(~dplyr::lead(arrive.datetime))
-    nm <- "depart.calculated"
+    nm <- "depart.datetime"
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
-    tidy <- dplyr::rowwise(tidy)
-
-    dots <- list(~compare_dates(depart.calculated, depart.recorded),
-                 ~as.numeric(difftime(depart.datetime, arrive.datetime,
-                                      units = "days")))
-    nm <- list("depart.datetime", "unit.length.stay")
-    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
-
-    dots <- list(quote(-depart.recorded), quote(-depart.calculated))
-    tidy <- dplyr::select_(tidy, .dots = dots)
+    # if calculated time is NA, use recorded time
+    tidy$depart.datetime[is.na(tidy$depart.datetime)] <-
+        tidy$depart.recorded[is.na(tidy$depart.datetime)]
 
     tidy <- dplyr::ungroup(tidy)
+
+    dots <- list(~lubridate::interval(arrive.datetime, depart.datetime),
+                 ~as.numeric(difftime(depart.datetime, arrive.datetime,
+                                      units = "days")))
+    nm <- list("unit.interval", "unit.length.stay")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::select_(tidy, .dots = list(quote(-depart.recorded)))
+
 }
 
 #' Tidy services
