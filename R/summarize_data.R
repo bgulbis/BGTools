@@ -155,27 +155,26 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     # get first and max rates and AUC
     dots <- list(~dplyr::first(rate.start),
                  ~dplyr::last(rate.stop),
-                 ~lubridate::interval(dplyr::first(rate.start),
-                                      dplyr::last(rate.stop)),
                  ~sum(med.rate * duration, na.rm = TRUE),
                  ~dplyr::first(med.rate),
                  ~max(med.rate, na.rm = TRUE),
                  ~MESS::auc(run.time, med.rate),
                  ~dplyr::last(run.time))
-    nm <- c("start.datetime", "stop.datetime", "med.interval", "cum.dose",
-            "first.rate", "max.rate", "auc", "duration")
+    nm <- c("start.datetime", "stop.datetime", "cum.dose", "first.rate",
+            "max.rate", "auc", "duration")
     summary.data <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
 
     # join the last and min data
     summary.data <- dplyr::inner_join(summary.data, nz.rate,
                                       by = c("pie.id", "med", "drip.count"))
 
-    # calculate the time-weighted average
-    dots <- list(~auc/duration)
-    nm <- list("time.wt.avg")
+    summary.data <- dplyr::ungroup(summary.data)
+
+    # calculate the time-weighted average and interval
+    dots <- list(~auc/duration, ~lubridate::interval(start.datetime, stop.datetime))
+    nm <- c("time.wt.avg", "med.interval")
     summary.data <- dplyr::mutate_(summary.data, .dots = setNames(dots, nm))
 
-    return(summary.data)
 }
 
 #' Calculate run times for labs
