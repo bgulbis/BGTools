@@ -500,8 +500,7 @@ tidy_vent_times <- function(raw.data, visit.times) {
 
     # if it's the first event or the next event is a stop, then count as a new
     # vent event
-    dots <- list(~ifelse(is.na(dplyr::lag(vent.event)) |
-                             vent.event != lag(vent.event), TRUE, FALSE),
+    dots <- list(~is.na(dplyr::lag(vent.event)) | vent.event != lag(vent.event),
                  ~cumsum(diff.event))
     nm <- c("diff.event", "event.count")
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
@@ -524,25 +523,10 @@ tidy_vent_times <- function(raw.data, visit.times) {
     dots <- list(~dplyr::lead(last.event.datetime))
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "stop.datetime"))
 
-    tidy <- dplyr::rowwise(tidy)
-
-
-    # function to select between stop date/time or discharge date/time,
-    # work-around for loss of POSIXct type when using ifelse
-    get_date <- function(end, dc) {
-        if (is.na(end)) {
-            dc
-        } else {
-            end
-        }
-    }
-
     # if there isn't a stop date/time because there was start with no stop, use
     # the discharge date/time as stop date/time
-    dots <- list(~get_date(stop.datetime, discharge.datetime),
-                 ~difftime(stop.datetime, first.event.datetime, units = "hours"))
-    nm <- c("stop.datetime", "vent.duration")
-    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+    tidy$stop.datetime[is.na(tidy$stop.datetime)] <-
+        tidy$discharge.datetime[is.na(tidy$stop.datetime)]
 
     tidy <- dplyr::filter_(tidy, .dots = list(~event == "vent start time"))
 
@@ -550,7 +534,12 @@ tidy_vent_times <- function(raw.data, visit.times) {
                                                   "start.datetime"))
 
     tidy <- dplyr::select_(tidy, .dots = list("pie.id", "start.datetime",
-                                              "stop.datetime", "vent.duration"))
+                                              "stop.datetime"))
 
     tidy <- dplyr::ungroup(tidy)
+
+    dots <- list(~lubridate::interval(start.datetime, stop.datetime),
+                 ~difftime(stop.datetime, start.datetime, units = "hours"))
+    nm <- c("vent.interval", "vent.duration")
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 }
