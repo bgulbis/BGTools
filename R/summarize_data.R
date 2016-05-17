@@ -155,13 +155,15 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     # get first and max rates and AUC
     dots <- list(~dplyr::first(rate.start),
                  ~dplyr::last(rate.stop),
+                 ~lubridate::interval(dplyr::first(rate.start),
+                                      dplyr::last(rate.stop)),
                  ~sum(med.rate * duration, na.rm = TRUE),
                  ~dplyr::first(med.rate),
                  ~max(med.rate, na.rm = TRUE),
                  ~MESS::auc(run.time, med.rate),
                  ~dplyr::last(run.time))
-    nm <- c("start.datetime", "stop.datetime", "cum.dose", "first.rate",
-            "max.rate", "auc", "duration")
+    nm <- c("start.datetime", "stop.datetime", "med.interval", "cum.dose",
+            "first.rate", "max.rate", "auc", "duration")
     summary.data <- dplyr::summarize_(cont.data, .dots = setNames(dots, nm))
 
     # join the last and min data
