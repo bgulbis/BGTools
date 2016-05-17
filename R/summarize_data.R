@@ -171,8 +171,8 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     summary.data <- dplyr::ungroup(summary.data)
 
     # calculate the time-weighted average and interval
-    dots <- list(~auc/duration, ~lubridate::interval(start.datetime, stop.datetime))
-    nm <- c("time.wt.avg", "med.interval")
+    dots <- list(~auc/duration)
+    nm <- "time.wt.avg"
     summary.data <- dplyr::mutate_(summary.data, .dots = setNames(dots, nm))
 
 }
