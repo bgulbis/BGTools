@@ -77,7 +77,8 @@ add_patients <- function(tidy, patients) {
 #' @return A data frame
 #'
 tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
-    warning("icd9_lookup is deprecated, use icd_lookup instead")
+    .Deprecated("tidy_icd")
+    # warning("tidy_diagnosis is deprecated, use tidy_icd instead")
 
     # convert any CCS codes to ICD9
     lookup.codes <- icd9_lookup(ref.data)
