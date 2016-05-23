@@ -168,12 +168,13 @@ summarize_cont_meds <- function(cont.data, units = "hours") {
     summary.data <- dplyr::inner_join(summary.data, nz.rate,
                                       by = c("pie.id", "med", "drip.count"))
 
-    # calculate the time-weighted average
+    summary.data <- dplyr::ungroup(summary.data)
+
+    # calculate the time-weighted average and interval
     dots <- list(~auc/duration)
-    nm <- list("time.wt.avg")
+    nm <- "time.wt.avg"
     summary.data <- dplyr::mutate_(summary.data, .dots = setNames(dots, nm))
 
-    return(summary.data)
 }
 
 #' Calculate run times for labs

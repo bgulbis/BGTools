@@ -77,7 +77,8 @@ add_patients <- function(tidy, patients) {
 #' @return A data frame
 #'
 tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
-    warning("icd9_lookup is deprecated, use icd_lookup instead")
+    .Deprecated("tidy_icd")
+    # warning("tidy_diagnosis is deprecated, use tidy_icd instead")
 
     # convert any CCS codes to ICD9
     lookup.codes <- icd9_lookup(ref.data)
@@ -383,16 +384,14 @@ tidy_locations <- function(raw.data) {
     tidy <- dplyr::group_by_(raw.data, "pie.id")
     tidy <- dplyr::arrange_(tidy, "arrive.datetime")
 
-    # determine if they went to a different unit, then make a count of different
-    # units
-    dots <- list(~ifelse(is.na(unit.to) | is.na(dplyr::lag(unit.to)) |
-                             unit.to != dplyr::lag(unit.to), TRUE, FALSE),
+    # determine if they went to a different unit, count num of different units
+    dots <- list(~is.na(unit.to) | is.na(dplyr::lag(unit.to)) |
+                     unit.to != dplyr::lag(unit.to),
                  ~cumsum(diff.unit))
     nm <- list("diff.unit", "unit.count")
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
-    # use the unit.count to group multiple rows of the same unit together and
-    # combine data
+    # use the unit.count to group multiple rows of the same unit together
     dots <- list("pie.id", "unit.count")
     tidy <- dplyr::group_by_(tidy, .dots = dots)
 
@@ -403,21 +402,22 @@ tidy_locations <- function(raw.data) {
 
     # use the arrival time for the next unit to calculate a depart time
     dots <- list(~dplyr::lead(arrive.datetime))
-    nm <- "depart.calculated"
+    nm <- "depart.datetime"
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 
-    tidy <- dplyr::rowwise(tidy)
-
-    dots <- list(~compare_dates(depart.calculated, depart.recorded),
-                 ~as.numeric(difftime(depart.datetime, arrive.datetime,
-                                      units = "days")))
-    nm <- list("depart.datetime", "unit.length.stay")
-    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
-
-    dots <- list(quote(-depart.recorded), quote(-depart.calculated))
-    tidy <- dplyr::select_(tidy, .dots = dots)
+    # replace NA with recorded date/time
+    tidy$depart.datetime[is.na(tidy$depart.datetime)] <-
+        tidy$depart.recorded[is.na(tidy$depart.datetime)]
 
     tidy <- dplyr::ungroup(tidy)
+
+    dots <- list(~as.numeric(difftime(depart.datetime, arrive.datetime,
+                                      units = "days")))
+    nm <- "unit.length.stay"
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+
+    tidy <- dplyr::select_(tidy, .dots = list(quote(-depart.recorded)))
+
 }
 
 #' Tidy services
@@ -500,8 +500,7 @@ tidy_vent_times <- function(raw.data, visit.times) {
 
     # if it's the first event or the next event is a stop, then count as a new
     # vent event
-    dots <- list(~ifelse(is.na(dplyr::lag(vent.event)) |
-                             vent.event != lag(vent.event), TRUE, FALSE),
+    dots <- list(~is.na(dplyr::lag(vent.event)) | vent.event != lag(vent.event),
                  ~cumsum(diff.event))
     nm <- c("diff.event", "event.count")
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
@@ -524,25 +523,10 @@ tidy_vent_times <- function(raw.data, visit.times) {
     dots <- list(~dplyr::lead(last.event.datetime))
     tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, "stop.datetime"))
 
-    tidy <- dplyr::rowwise(tidy)
-
-
-    # function to select between stop date/time or discharge date/time,
-    # work-around for loss of POSIXct type when using ifelse
-    get_date <- function(end, dc) {
-        if (is.na(end)) {
-            dc
-        } else {
-            end
-        }
-    }
-
     # if there isn't a stop date/time because there was start with no stop, use
     # the discharge date/time as stop date/time
-    dots <- list(~get_date(stop.datetime, discharge.datetime),
-                 ~difftime(stop.datetime, first.event.datetime, units = "hours"))
-    nm <- c("stop.datetime", "vent.duration")
-    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
+    tidy$stop.datetime[is.na(tidy$stop.datetime)] <-
+        tidy$discharge.datetime[is.na(tidy$stop.datetime)]
 
     tidy <- dplyr::filter_(tidy, .dots = list(~event == "vent start time"))
 
@@ -550,7 +534,11 @@ tidy_vent_times <- function(raw.data, visit.times) {
                                                   "start.datetime"))
 
     tidy <- dplyr::select_(tidy, .dots = list("pie.id", "start.datetime",
-                                              "stop.datetime", "vent.duration"))
+                                              "stop.datetime"))
 
     tidy <- dplyr::ungroup(tidy)
+
+    dots <- list(~difftime(stop.datetime, start.datetime, units = "hours"))
+    nm <- "vent.duration"
+    tidy <- dplyr::mutate_(tidy, .dots = setNames(dots, nm))
 }
