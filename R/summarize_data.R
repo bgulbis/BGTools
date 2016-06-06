@@ -254,6 +254,60 @@ calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
     return(data)
 }
 
+#' Summary calculations for lab data
+#'
+#' \code{summarize_labs} summarizes lab data
+#'
+#' This function takes a data frame with numeric lab result data and produces a
+#' data frame with summary data for each patient and lab. The calculations
+#' include: first result, last result, minimum result, maximum result, AUC, and
+#' time-weighted average result.
+#'
+#' @param lab.data A data frame with lab data
+#' @param units An optional character string specifying the time units to use in
+#'   calculations, default is hours
+#'
+#' @return A data frame
+#'
+#' @export
+summarize_labs <- function(lab.data, units = "hours") {
+    # turn off scientific notation
+    options(scipen = 999)
+
+    dots <- list("pie.id", "lab")
+    labs <- dplyr::group_by_(lab.data, .dots = dots)
+
+    # get last and min non-zero rate
+    # nz.rate <- dplyr::filter_(labs, .dots = ~(med.rate > 0))
+    # dots <- list(~dplyr::last(med.rate), ~min(med.rate, na.rm = TRUE),
+    #              ~sum(duration, na.rm = TRUE))
+    # nm <- c("last.rate", "min.rate", "run.time")
+    # nz.rate <- dplyr::summarize_(nz.rate, .dots = setNames(dots, nm))
+
+    # summarize
+    dots <- list(~dplyr::first(lab.datetime),
+                 ~dplyr::last(lab.datetime),
+                 ~dplyr::first(lab.result),
+                 ~dplyr::last(lab.result),
+                 ~max(lab.result, na.rm = TRUE),
+                 ~min(lab.result, na.rm = TRUE),
+                 ~MESS::auc(run.time, lab.result))
+    nm <- c("first.datetime", "last.datetime", "first.result", "last.result",
+            "max.result", "min.result", "auc")
+    summary.data <- dplyr::summarize_(labs, .dots = setNames(dots, nm))
+
+    # join the last and min data
+    # summary.data <- dplyr::inner_join(summary.data, nz.rate,
+    #                                   by = c("pie.id", "med", "drip.count"))
+
+    summary.data <- dplyr::ungroup(summary.data)
+
+    # calculate the time-weighted average and interval
+    dots <- list(~auc/duration)
+    nm <- "time.wt.avg"
+    summary.data <- dplyr::mutate_(summary.data, .dots = setNames(dots, nm))
+
+}
 
 #' Determine if a lab changed by a set amount within a specific time frame
 #'
