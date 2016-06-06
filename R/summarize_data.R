@@ -260,8 +260,8 @@ calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
 #'
 #' This function takes a data frame with numeric lab result data and produces a
 #' data frame with summary data for each patient and lab. The calculations
-#' include: first result, last result, minimum result, maximum result, AUC, and
-#' time-weighted average result.
+#' include: first, last, median, maximum, minimum, AUC, and time-weighted
+#' average result.
 #'
 #' @param lab.data A data frame with lab data
 #' @param units An optional character string specifying the time units to use in
@@ -289,11 +289,13 @@ summarize_labs <- function(lab.data, units = "hours") {
                  ~dplyr::last(lab.datetime),
                  ~dplyr::first(lab.result),
                  ~dplyr::last(lab.result),
+                 ~median(lab.result, na.rm = TRUE),
                  ~max(lab.result, na.rm = TRUE),
                  ~min(lab.result, na.rm = TRUE),
-                 ~MESS::auc(run.time, lab.result))
+                 ~MESS::auc(run.time, lab.result),
+                 ~dplyr::last(run.time))
     nm <- c("first.datetime", "last.datetime", "first.result", "last.result",
-            "max.result", "min.result", "auc")
+            "median.result", "max.result", "min.result", "auc", "duration")
     summary.data <- dplyr::summarize_(labs, .dots = setNames(dots, nm))
 
     # join the last and min data

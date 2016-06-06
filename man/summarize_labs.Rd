@@ -21,7 +21,7 @@ A data frame
 \details{
 This function takes a data frame with numeric lab result data and produces a
 data frame with summary data for each patient and lab. The calculations
-include: first result, last result, minimum result, maximum result, AUC, and
-time-weighted average result.
+include: first, last, median, maximum, minimum, AUC, and time-weighted
+average result.
 }
 
