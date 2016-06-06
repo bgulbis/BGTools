@@ -224,6 +224,15 @@ calc_lab_runtime <- function(cont.data, units = "hours") {
 
 #' @export
 calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
+    # join the data frames and calculate percent time
+    if (meds == TRUE) {
+        x <- c("pie.id", "med", "drip.count")
+    } else {
+        x <- c("pie.id", "lab")
+    }
+
+    cont.data <- dplyr::group_by_(cont.data, .dots = as.list(x))
+
     # get the total duration of data
     dots <- list(~dplyr::last(run.time))
     nm <- list("total.dur")
@@ -236,13 +245,6 @@ calc_perc_time <- function(cont.data, thrshld, meds = TRUE) {
     dots <- list(~sum(duration, na.rm = TRUE))
     nm <- list("time.goal")
     goal <- dplyr::summarize_(goal, .dots = setNames(dots, nm))
-
-    # join the data frames and calculate percent time
-    if (meds == TRUE) {
-        x <- c("pie.id", "med", "drip.count")
-    } else {
-        x <- c("pie.id", "lab")
-    }
 
     data <- dplyr::full_join(duration, goal, by = x)
 
