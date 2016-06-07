@@ -63,10 +63,10 @@ fill_na <- function(x) {
 #' files and binds them together into a data frame using
 #' \code{\link[readr]{read_csv}} from the readr package.
 #'
-#' Valid options for type include: blood, charges, demographics, diagnosis*,
-#' encounters, events, home_meds, icd9, icd10, icu_assess, id, labs, locations,
-#' measures, meds_continuous, meds_sched, meds_sched_freq, mpp, mrn, orders,
-#' patients, problems, procedures**, procedures_icd9, procedures_icd10,
+#' Valid options for type include: blood, charges, cost, demographics,
+#' diagnosis*, encounters, events, home_meds, icd9, icd10, icu_assess, id, labs,
+#' locations, measures, meds_continuous, meds_sched, meds_sched_freq, mpp, mrn,
+#' orders, patients, problems, procedures**, procedures_icd9, procedures_icd10,
 #' radiology, services, surgeries, uop, vent_settings, vent_start, visits,
 #' vitals, warfarin
 #'
@@ -131,6 +131,26 @@ read_edw_data <- function(data.dir, file.name, type = NA,
                             "Institution Desc")
                col.names <- c(pt.id, "cdm.code", "service.date", "institution")
                col.types <- readr::cols_only("c", "c", col_dt, "c")
+           },
+
+           cost = {
+               col.raw <- c("Cdm Code", "Cdm Desc", "Pavillion Desc",
+                            "Calendar Year", "Calendar Month", "Direct Fixed Cost",
+                            "Indirect Fixed Cost", "Direct Variable Cost",
+                            "Indirect Variable Cost", "Total Cost",
+                            "Medical Center Pharmacy Cost",
+                            "Community Pharmacy Cost")
+               col.names <- c("cdm.code", "cdm.desc", "institution",
+                              "calendar.year", "calendar.month",
+                              "direct.fixed.cost", "indirect.fixed.cost",
+                              "direct.variable.cost", "indirect.variable.cost",
+                              "total.cost", "tmc.cost", "community.cost")
+               col.types <- readr::cols("c", "c", "c", "i", "i", "d", "d", "d",
+                                        "d", "d", "d", "d")
+               dots <- list(~lubridate::ymd(paste(
+                   calendar.year, calendar.month, "1", sep = "-"), tz = "UTC")
+               )
+               nm <- "yearmo"
            },
 
            demographics = {
