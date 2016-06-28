@@ -161,7 +161,7 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
 
     # remove all duplicate pie.id / disease state combinations
     dots <- list("pie.id", "disease.state")
-    tidy <- dplyr::distinct_(tidy, .dots = dots)
+    tidy <- dplyr::distinct_(tidy, .dots = dots, .keep_all = TRUE)
 
     # convert the data to wide format
     tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE, drop = FALSE)
