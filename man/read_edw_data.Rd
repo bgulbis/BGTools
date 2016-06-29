@@ -30,10 +30,10 @@ This function takes a directory and file name and reads in all matching csv
 files and binds them together into a data frame using
 \code{\link[readr]{read_csv}} from the readr package.
 
-Valid options for type include: blood, charges, demographics, diagnosis*,
-encounters, events, home_meds, icd9, icd10, icu_assess, id, labs, locations,
-measures, meds_continuous, meds_sched, meds_sched_freq, mpp, mrn, orders,
-patients, problems, procedures**, procedures_icd9, procedures_icd10,
+Valid options for type include: blood, charges, cost, demographics,
+diagnosis*, encounters, events, home_meds, icd9, icd10, icu_assess, id, labs,
+locations, measures, meds_continuous, meds_sched, meds_sched_freq, mpp, mrn,
+orders, patients, problems, procedures**, procedures_icd9, procedures_icd10,
 radiology, services, surgeries, uop, vent_settings, vent_start, visits,
 vitals, warfarin
 

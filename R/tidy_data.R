@@ -104,7 +104,7 @@ tidy_diagnosis <- function(raw.data, ref.data, patients = NULL) {
 
     # remove all duplicate pie.id / disease state combinations
     dots <- list("pie.id", "disease.state")
-    tidy <- dplyr::distinct_(tidy, .dots = dots)
+    tidy <- dplyr::distinct_(tidy, .dots = dots, .keep_all = TRUE)
 
     # convert the data to wide format
     tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE,
@@ -161,7 +161,7 @@ tidy_icd <- function(raw.data, ref.data, icd10 = FALSE, patients = NULL) {
 
     # remove all duplicate pie.id / disease state combinations
     dots <- list("pie.id", "disease.state")
-    tidy <- dplyr::distinct_(tidy, .dots = dots)
+    tidy <- dplyr::distinct_(tidy, .dots = dots, .keep_all = TRUE)
 
     # convert the data to wide format
     tidy <- tidyr::spread_(tidy, "disease.state", "value", fill = FALSE, drop = FALSE)
@@ -260,7 +260,7 @@ tidy_meds_outpt <- function(raw.data, ref.data, patients = NULL, home = TRUE) {
     tidy <- dplyr::select_(tidy, .dots = list("pie.id", "group", "value"))
 
     # remove any duplicate patient / group combinations
-    tidy <- dplyr::distinct_(tidy, .dots = list("pie.id", "group"))
+    tidy <- dplyr::distinct_(tidy, .dots = list("pie.id", "group"), .keep_all = TRUE)
 
     # convert the data to wide format
     tidy <- tidyr::spread_(tidy, "group", "value", fill = FALSE, drop = FALSE)
