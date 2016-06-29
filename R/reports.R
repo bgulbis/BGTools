@@ -301,7 +301,7 @@ result_table2 <- function(mydoc, test, split.by, table.title, group = "group") {
     split.col <- as.name(split.by)
     dots <- list(lazyeval::interp(quote(x), x = split.col))
     splits <- dplyr::select_(test, .dots = dots)
-    splits <- dplyr::distinct_(splits)
+    splits <- dplyr::distinct_(splits, .keep_all = TRUE)
     splits <- as.character(purrr::as_vector(splits))
 
     # for each value, make a separate result_table

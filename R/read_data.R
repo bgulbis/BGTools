@@ -37,7 +37,7 @@ read_data <- function(data.dir, file.name, base = FALSE,
     # indicator to remove duplicates; defaults to TRUE but use FALSE for faster
     # read times
     if (check.distinct == TRUE) {
-        raw <- dplyr::distinct_(raw)
+        raw <- dplyr::distinct_(raw, .keep_all = TRUE)
     }
 
     raw
@@ -477,7 +477,7 @@ read_edw_data <- function(data.dir, file.name, type = NA,
     # indicator to remove duplicates; defaults to TRUE but use FALSE for faster
     # read times with large data sets
     if (check.distinct == TRUE) {
-        read <- dplyr::distinct_(read)
+        read <- dplyr::distinct_(read, .keep_all = TRUE)
     }
 
     # perform any necessary data mutations
